@@ -731,4 +731,35 @@ document.getElementById('logo-upload').addEventListener('change', function(e) {
     }
 });
 
+});
+
+// ---------------- القائمة الجانبية للموبايل ---------------- //
+const hamburgerBtn = document.getElementById('hamburger-btn');
+const sidebar = document.querySelector('.sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+if (hamburgerBtn && sidebar && sidebarOverlay) {
+    function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('active');
+        if(sidebar.classList.contains('open')) {
+            document.body.style.overflow = 'hidden'; // لمنع التمرير تحت القائمة
+        } else {
+            document.body.style.overflow = '';
+        }
+    }
+
+    hamburgerBtn.addEventListener('click', toggleSidebar);
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+
+    // إغلاق القائمة عند النقر على أحد الروابط (للموبايل)
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+                toggleSidebar();
+            }
+        });
+    });
+}
+
 updateUI();
