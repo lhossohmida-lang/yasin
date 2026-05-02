@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة متجر الألبسة الرجالية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="app-container no-print">
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-user-tie"></i>
+                <h2>أناقة للرجال</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-target="section-dashboard"><i class="fa-solid fa-chart-pie"></i> لوحة القيادة</a>
+                <a href="#" class="nav-item" data-target="section-inventory"><i class="fa-solid fa-box-open"></i> إدارة المخزون</a>
+                <a href="#" class="nav-item" data-target="section-sales"><i class="fa-solid fa-cart-shopping"></i> نقطة البيع</a>
+                <a href="#" class="nav-item" data-target="section-history"><i class="fa-solid fa-clock-rotate-left"></i> سجل المبيعات</a>
+                <a href="#" class="nav-item" data-target="section-expenses"><i class="fa-solid fa-file-invoice-dollar"></i> الخسائر والمصاريف</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h1 id="page-title">لوحة القيادة</h1>
+                <div class="user-info">
+                    <span class="date" id="current-date"></span>
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                </div>
+            </header>
+
+            <div id="section-dashboard" class="page-section">
+                <section class="dashboard-cards">
+                    <div class="card card-capital">
+                        <div class="card-icon"><i class="fa-solid fa-vault"></i></div>
+                        <div class="card-info">
+                            <h3>إجمالي رأس المال</h3>
+                            <p class="value" id="total-capital">0.00</p>
+                            <span class="subtitle">قيمة المخزون الحالي</span>
+                        </div>
+                    </div>
+                    <div class="card card-income">
+                        <div class="card-icon"><i class="fa-solid fa-wallet"></i></div>
+                        <div class="card-info">
+                            <h3>إجمالي المداخيل</h3>
+                            <p class="value text-blue" id="total-income">0.00</p>
+                            <span class="subtitle">مبيعات المتجر</span>
+                        </div>
+                    </div>
+                    <div class="card card-profit">
+                        <div class="card-icon"><i class="fa-solid fa-chart-line"></i></div>
+                        <div class="card-info">
+                            <h3>صافي الفائدة</h3>
+                            <p class="value text-success" id="net-profit">0.00</p>
+                            <span class="subtitle">الأرباح الصافية</span>
+                        </div>
+                    </div>
+                    <div class="card card-loss">
+                        <div class="card-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                        <div class="card-info">
+                            <h3>الخسائر والمصاريف</h3>
+                            <p class="value text-danger" id="total-losses">0.00</p>
+                            <span class="subtitle">يتم خصمها من الفائدة</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="dashboard-grid">
+                    <div class="panel quick-sale-panel">
+                        <div class="panel-header" style="margin-bottom: 1rem;">
+                            <h2><i class="fa-solid fa-bolt"></i> تسجيل بيع سريع</h2>
+                        </div>
+                        <!-- خانة البحث -->
+                        <div class="search-box" style="margin-bottom: 1rem;">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="dashboard-search" placeholder="ابحث عن منتج...">
+                        </div>
+                        <!-- شبكة المنتجات -->
+                        <div id="dashboard-products-grid" class="dashboard-pos-grid">
+                            <!-- injected by JS -->
+                        </div>
+                        <!-- إجراء البيع بعد الاختيار -->
+                        <div id="dashboard-sale-action" style="display:none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom: 1rem; gap: 1rem;">
+                                <div>
+                                    <div id="selected-product-name" style="font-weight: 600; font-size: 1rem;"></div>
+                                    <div id="selected-product-price" style="color: var(--accent-primary); font-size: 0.9rem;"></div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:0.5rem;">
+                                    <button class="qty-btn" onclick="changeDashQty(1)"><i class="fa-solid fa-plus"></i></button>
+                                    <span id="dash-qty-display" style="font-size:1.2rem; font-weight:700; min-width:30px; text-align:center;">1</span>
+                                    <button class="qty-btn" onclick="changeDashQty(-1)"><i class="fa-solid fa-minus"></i></button>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="confirmDashboardSale()">تأكيد البيع <i class="fa-solid fa-check"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="panel alerts-panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-bell"></i> تنبيهات المخزون</h2>
+                        </div>
+                        <ul class="alerts-list" id="dashboard-alerts">
+                            <!-- Alerts injected by JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- قسم إدارة المخزون -->
+            <div id="section-inventory" class="page-section" style="display:none">
+                <div class="dashboard-grid" style="grid-template-columns: 1fr; margin-bottom: 1.5rem;">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-plus-circle"></i> إضافة منتج جديد</h2>
+                        </div>
+                        <form id="add-product-form" class="grid-form">
+                            <div class="form-group">
+                                <label>نوع القطعة (اسم المنتج)</label>
+                                <input type="text" id="inv-name" required placeholder="مثال: قميص كلاسيكي">
+                            </div>
+                            <div class="form-group">
+                                <label>الكمية المضافة</label>
+                                <input type="number" id="inv-quantity" required min="1" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label>سعر الشراء (التكلفة)</label>
+                                <input type="number" id="inv-buy" required min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>سعر البيع</label>
+                                <input type="number" id="inv-sell" required min="0">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: flex-end;">
+                                <button type="submit" class="btn btn-primary" style="height: 45px;"><i class="fa-solid fa-plus"></i> إضافة للمخزون</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-boxes-stacked"></i> المخزون الحالي</h2>
+                    </div>
+                    <div id="inventory-cards-container" class="products-grid">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- الأقسام الأخرى -->
+            <div id="section-sales" class="page-section" style="display:none">
+                <div class="pos-layout">
+                    <!-- Products Area -->
+                    <div class="pos-products-area">
+                        <div class="pos-header">
+                            <div class="search-box">
+                                <i class="fa-solid fa-search"></i>
+                                <input type="text" id="pos-search" placeholder="ابحث عن منتج بالاسم...">
+                            </div>
+                        </div>
+                        <div id="pos-products-grid" class="pos-grid">
+                            <!-- POS square cards injected by JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Cart Area -->
+                    <div class="pos-cart-area panel">
+                        <h2 style="margin-bottom: 1rem;"><i class="fa-solid fa-cart-shopping"></i> السلة</h2>
+                        <div class="cart-items" id="cart-items-container">
+                            <!-- Cart items injected by JS -->
+                            <div class="empty-cart-msg text-secondary" style="text-align: center; padding: 2rem 0;">السلة فارغة حالياً</div>
+                        </div>
+                        <div class="cart-summary" style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <div class="summary-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <span>الإجمالي:</span>
+                                <span id="cart-total" class="text-blue" style="font-size: 1.5rem; font-weight: bold;">0.00 د.ج</span>
+                            </div>
+                            <button class="btn btn-primary" id="btn-checkout" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                                إتمام البيع <i class="fa-solid fa-check-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- قسم سجل المبيعات والإرجاع -->
+            <div id="section-history" class="page-section" style="display:none">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-clock-rotate-left"></i> سجل المبيعات</h2>
+                    </div>
+                    <div class="search-box" style="margin-bottom:1.5rem;">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="history-search" placeholder="ابحث في سجل المبيعات...">
+                    </div>
+                    <div id="history-list" class="history-list">
+                        <!-- injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- قسم المصاريف والخسائر -->
+            <div id="section-expenses" class="page-section" style="display:none">
+                <div class="dashboard-grid" style="grid-template-columns:1fr; margin-bottom:1.5rem;">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-plus-circle"></i> إضافة مصروف جديد</h2>
+                        </div>
+                        <form id="expense-form" class="grid-form">
+                            <div class="form-group">
+                                <label>وصف المصروف</label>
+                                <input type="text" id="exp-desc" required placeholder="مثال: إيجار المحل">
+                            </div>
+                            <div class="form-group">
+                                <label>المبلغ (د.ج)</label>
+                                <input type="number" id="exp-amount" required min="1" placeholder="0">
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:flex-end;">
+                                <button type="submit" class="btn btn-primary" style="height:45px;"><i class="fa-solid fa-plus"></i> إضافة المصروف</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-list"></i> قائمة المصاريف</h2>
+                    </div>
+                    <div id="expenses-list" class="history-list">
+                        <!-- injected by JS -->
+                    </div>
+                    <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--text-secondary);">إجمالي المصاريف:</span>
+                        <span id="total-expenses-display" class="text-danger" style="font-size:1.3rem; font-weight:700;">0.00 د.ج</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal receipt -->
+    <div id="receipt-modal" class="modal">
+        <div class="modal-content">
+            <div class="receipt-area" id="print-area">
+                <div class="receipt-header">
+                    <h2>أناقة للرجال</h2>
+                    <p>قسيمة بيع</p>
+                    <div class="receipt-date" id="receipt-date"></div>
+                </div>
+                <div class="receipt-body">
+                    <table class="receipt-table">
+                        <thead>
+                            <tr>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receipt-items"></tbody>
+                    </table>
+                </div>
+                <div class="receipt-footer">
+                    <h3>المبلغ الإجمالي: <span id="receipt-total">0.00</span> د.ج</h3>
+                    <p>شكراً لزيارتكم!</p>
+                </div>
+            </div>
+            
+            <div class="modal-actions no-print">
+                <button class="btn btn-primary" onclick="printReceipt()"><i class="fa-solid fa-print"></i> طباعة القسيمة</button>
+                <button class="btn btn-danger" onclick="closeReceipt()">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('ServiceWorker registered');
+                });
+            });
+        }
+    </script>
+</body>
+</html>
