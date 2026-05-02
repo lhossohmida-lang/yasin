@@ -1,5 +1,7 @@
 {
-  "buildCommand": null,
+  "buildCommand": "echo 'No build'",
+  "installCommand": "echo 'No install'",
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
