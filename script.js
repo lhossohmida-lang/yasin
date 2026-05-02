@@ -703,16 +703,11 @@ function renderExpenses() {
 
 // ---------------- تغيير الشعار ---------------- //
 function updateLogoUI(logoStr) {
-    const icon = document.getElementById('app-logo-icon');
     const img = document.getElementById('app-logo-img');
     if (logoStr) {
-        icon.style.display = 'none';
-        img.style.display = 'block';
         img.src = logoStr;
     } else {
-        icon.style.display = 'inline-block';
-        img.style.display = 'none';
-        img.src = '';
+        img.src = './icon.png';
     }
 }
 
