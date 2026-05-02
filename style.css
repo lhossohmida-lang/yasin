@@ -50,6 +50,30 @@ body {
     color: var(--accent-primary);
 }
 
+.btn-change-logo {
+    position: absolute;
+    bottom: -5px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    transition: var(--transition);
+    z-index: 10;
+}
+.btn-change-logo:hover {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
 .nav-item {
     text-decoration: none;
     color: var(--text-secondary);

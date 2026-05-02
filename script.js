@@ -24,6 +24,7 @@ let storeData = { totalIncome: 0.00, netProfit: 0.00, totalLosses: 0.00 };
 db.collection("store").doc("data").onSnapshot((doc) => {
     if (doc.exists) {
         storeData = doc.data();
+        if(storeData.logo) updateLogoUI(storeData.logo);
     } else {
         db.collection("store").doc("data").set(storeData);
     }
@@ -699,5 +700,40 @@ function renderExpenses() {
     
     totalDisplay.innerText = storeData.totalLosses.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
 }
+
+// ---------------- تغيير الشعار ---------------- //
+function updateLogoUI(logoStr) {
+    const icon = document.getElementById('app-logo-icon');
+    const img = document.getElementById('app-logo-img');
+    if (logoStr) {
+        icon.style.display = 'none';
+        img.style.display = 'block';
+        img.src = logoStr;
+    } else {
+        icon.style.display = 'inline-block';
+        img.style.display = 'none';
+        img.src = '';
+    }
+}
+
+document.getElementById('logo-upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+            const base64Str = event.target.result;
+            // Update UI
+            updateLogoUI(base64Str);
+            // Save to Firestore
+            storeData.logo = base64Str;
+            try {
+                await updateStoreDataInDB();
+            } catch(err) {
+                console.error("Error saving logo:", err);
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
 
 updateUI();

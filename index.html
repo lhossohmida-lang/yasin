@@ -16,7 +16,14 @@
     <div class="app-container no-print">
         <aside class="sidebar">
             <div class="logo">
-                <i class="fa-solid fa-user-tie"></i>
+                <div style="position: relative; display: inline-block;">
+                    <img id="app-logo-img" src="" style="display: none; width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-primary);">
+                    <i id="app-logo-icon" class="fa-solid fa-user-tie" style="font-size: 2.2rem;"></i>
+                    <button onclick="document.getElementById('logo-upload').click()" class="btn-change-logo" title="تغيير الشعار">
+                        <i class="fa-solid fa-camera"></i>
+                    </button>
+                    <input type="file" id="logo-upload" accept="image/*" style="display: none;">
+                </div>
                 <h2>أناقة للرجال</h2>
             </div>
             <nav class="nav-menu">
