@@ -14,7 +14,7 @@
     "productName": "أناقة للرجال",
     "win": {
       "target": "portable",
-      "icon": null
+      "icon": "icon.png"
     },
     "portable": {
       "artifactName": "أناقة-للرجال.exe"
