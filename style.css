@@ -32,22 +32,30 @@ body {
 
 /* --- القائمة الجانبية --- */
 .sidebar {
-    width: 260px;
+    width: 250px;
     background-color: var(--bg-surface);
     border-left: 1px solid var(--border-color);
-    padding: 1.5rem;
+    padding: 1.5rem 1rem;
     display: flex;
     flex-direction: column;
 }
 
 .logo {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    padding-bottom: 2rem;
+    justify-content: center;
+    text-align: center;
+    gap: 0.8rem;
+    padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     color: var(--accent-primary);
+}
+
+.logo h2 {
+    font-size: 1.3rem;
+    white-space: nowrap;
 }
 
 .btn-change-logo {
@@ -759,17 +767,18 @@ body {
     .sidebar {
         position: fixed;
         top: 0;
-        right: -280px;
-        width: 260px;
+        right: 0;
+        transform: translateX(100%);
+        width: 250px;
         height: 100%;
         z-index: 100;
-        transition: right 0.35s ease;
+        transition: transform 0.35s ease;
         border-left: 1px solid var(--border-color);
         overflow-y: auto;
     }
 
     .sidebar.open {
-        right: 0;
+        transform: translateX(0);
         box-shadow: -10px 0 40px rgba(0,0,0,0.5);
     }
 
