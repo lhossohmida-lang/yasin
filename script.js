@@ -573,47 +573,85 @@ function applyRole(role) {
 
 // ================== تسجيل الدخول ==================
 function initLogin() {
-    const loginScreen = document.getElementById('login-screen');
     const appContainer = document.querySelector('.app-container');
-    const loginForm = document.getElementById('login-form');
-    const loginError = document.getElementById('login-error');
-    if (!loginForm) return;
+    const adminForm = document.getElementById('admin-login-form');
+    const workerForm = document.getElementById('worker-login-form');
 
-    loginForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const user = document.getElementById('login-username').value.trim();
-        const pass = document.getElementById('login-password').value;
-        if (user === 'admin' && pass === 'admin123') {
-            loginScreen.style.display = 'none';
-            appContainer.style.display = 'flex';
-            applyRole('admin');
-            sessionStorage.setItem('userRole', 'admin');
-        } else if (user === 'worker' && pass === 'worker123') {
-            loginScreen.style.display = 'none';
-            appContainer.style.display = 'flex';
-            applyRole('worker');
-            sessionStorage.setItem('userRole', 'worker');
-        } else {
-            loginError.style.display = 'block';
-            loginError.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
-        }
-    });
+    if (adminForm) {
+        adminForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const user = document.getElementById('admin-username').value.trim();
+            const pass = document.getElementById('admin-password').value;
+            const error = document.getElementById('admin-login-error');
+
+            if (user === 'admin' && pass === 'yasin4321') {
+                document.getElementById('admin-login-screen').style.display = 'none';
+                appContainer.style.display = 'flex';
+                applyRole('admin');
+                sessionStorage.setItem('userRole', 'admin');
+            } else {
+                error.style.display = 'block';
+                error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+            }
+        });
+    }
+
+    if (workerForm) {
+        workerForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const user = document.getElementById('worker-username').value.trim();
+            const pass = document.getElementById('worker-password').value;
+            const error = document.getElementById('worker-login-error');
+
+            if (user === 'anis' && pass === 'anis') {
+                document.getElementById('worker-login-screen').style.display = 'none';
+                appContainer.style.display = 'flex';
+                applyRole('worker');
+                sessionStorage.setItem('userRole', 'worker');
+            } else {
+                error.style.display = 'block';
+                error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+            }
+        });
+    }
 
     const saved = sessionStorage.getItem('userRole');
     if (saved) {
-        loginScreen.style.display = 'none';
+        document.getElementById('login-selection-screen').style.display = 'none';
+        document.getElementById('admin-login-screen').style.display = 'none';
+        document.getElementById('worker-login-screen').style.display = 'none';
         appContainer.style.display = 'flex';
         applyRole(saved);
     }
 }
 
+function showAdminLogin() {
+    document.getElementById('login-selection-screen').style.display = 'none';
+    document.getElementById('admin-login-screen').style.display = 'flex';
+}
+
+function showWorkerLogin() {
+    document.getElementById('login-selection-screen').style.display = 'none';
+    document.getElementById('worker-login-screen').style.display = 'flex';
+}
+
+function showLoginSelection() {
+    document.getElementById('admin-login-screen').style.display = 'none';
+    document.getElementById('worker-login-screen').style.display = 'none';
+    document.getElementById('login-selection-screen').style.display = 'flex';
+    document.getElementById('admin-username').value = '';
+    document.getElementById('admin-password').value = '';
+    document.getElementById('worker-username').value = '';
+    document.getElementById('worker-password').value = '';
+    document.getElementById('admin-login-error').style.display = 'none';
+    document.getElementById('worker-login-error').style.display = 'none';
+}
+
 function logout() {
     sessionStorage.removeItem('userRole');
     currentRole = null;
-    document.getElementById('login-screen').style.display = 'flex';
+    showLoginSelection();
     document.querySelector('.app-container').style.display = 'none';
-    document.getElementById('login-password').value = '';
-    document.getElementById('login-error').style.display = 'none';
 }
 
 initLogin();
