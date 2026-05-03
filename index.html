@@ -15,7 +15,34 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <div class="app-container no-print">
+    <!-- صفحة تسجيل الدخول -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="./icon.png" alt="أناقة للرجال" class="login-logo-img">
+                <h1>أناقة للرجال</h1>
+                <p>إدارة متجر الألبسة الرجالية</p>
+            </div>
+            <form id="login-form" class="login-form">
+                <div class="login-field">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="login-username" placeholder="اسم المستخدم" required autocomplete="username">
+                </div>
+                <div class="login-field">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="login-password" placeholder="كلمة المرور" required autocomplete="current-password">
+                </div>
+                <div id="login-error" class="login-error" style="display:none;"></div>
+                <button type="submit" class="btn-login">تسجيل الدخول <i class="fa-solid fa-arrow-left"></i></button>
+            </form>
+            <div class="login-footer">
+                <p>مدير: admin / admin123</p>
+                <p>عامل: worker / worker123</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container no-print" style="display:none;">
         <aside class="sidebar">
             <div class="logo">
                 <div style="position: relative; display: inline-block;">
@@ -35,6 +62,9 @@
                 <a href="#" class="nav-item" data-target="section-history"><i class="fa-solid fa-clock-rotate-left"></i> سجل المبيعات</a>
                 <a href="#" class="nav-item" data-target="section-expenses"><i class="fa-solid fa-file-invoice-dollar"></i> الخسائر والمصاريف</a>
             </nav>
+            <div class="sidebar-bottom">
+                <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج</button>
+            </div>
         </aside>
 
         <main class="main-content">
@@ -43,7 +73,7 @@
                 <h1 id="page-title">لوحة القيادة</h1>
                 <div class="user-info">
                     <span class="date" id="current-date"></span>
-                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <button class="btn-header-logout" onclick="logout()" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></button>
                 </div>
             </header>
 
@@ -83,37 +113,7 @@
                     </div>
                 </section>
 
-                <div class="dashboard-grid">
-                    <div class="panel quick-sale-panel">
-                        <div class="panel-header" style="margin-bottom: 1rem;">
-                            <h2><i class="fa-solid fa-bolt"></i> تسجيل بيع سريع</h2>
-                        </div>
-                        <!-- خانة البحث -->
-                        <div class="search-box" style="margin-bottom: 1rem;">
-                            <i class="fa-solid fa-search"></i>
-                            <input type="text" id="dashboard-search" placeholder="ابحث عن منتج...">
-                        </div>
-                        <!-- شبكة المنتجات -->
-                        <div id="dashboard-products-grid" class="dashboard-pos-grid">
-                            <!-- injected by JS -->
-                        </div>
-                        <!-- إجراء البيع بعد الاختيار -->
-                        <div id="dashboard-sale-action" style="display:none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                            <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom: 1rem; gap: 1rem;">
-                                <div>
-                                    <div id="selected-product-name" style="font-weight: 600; font-size: 1rem;"></div>
-                                    <div id="selected-product-price" style="color: var(--accent-primary); font-size: 0.9rem;"></div>
-                                </div>
-                                <div style="display:flex; align-items:center; gap:0.5rem;">
-                                    <button class="qty-btn" onclick="changeDashQty(1)"><i class="fa-solid fa-plus"></i></button>
-                                    <span id="dash-qty-display" style="font-size:1.2rem; font-weight:700; min-width:30px; text-align:center;">1</span>
-                                    <button class="qty-btn" onclick="changeDashQty(-1)"><i class="fa-solid fa-minus"></i></button>
-                                </div>
-                            </div>
-                            <button class="btn btn-primary" onclick="confirmDashboardSale()">تأكيد البيع <i class="fa-solid fa-check"></i></button>
-                        </div>
-                    </div>
-
+                <div class="dashboard-grid" style="grid-template-columns: 1fr;">
                     <div class="panel alerts-panel">
                         <div class="panel-header">
                             <h2><i class="fa-solid fa-bell"></i> تنبيهات المخزون</h2>
@@ -252,12 +252,91 @@
                         <span id="total-expenses-display" class="text-danger" style="font-size:1.3rem; font-weight:700;">0.00 د.ج</span>
                     </div>
                 </div>
+
+                <!-- أجر العامل -->
+                <div class="dashboard-grid" style="grid-template-columns:1fr; margin-bottom:1.5rem; margin-top:1.5rem;">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-user-tie"></i> أجر العامل الشهري</h2>
+                        </div>
+                        <form id="worker-salary-form" class="grid-form">
+                            <div class="form-group">
+                                <label>اسم العامل</label>
+                                <input type="text" id="sal-worker-name" required placeholder="اسم العامل">
+                            </div>
+                            <div class="form-group">
+                                <label>الأجر الشهري (د.ج)</label>
+                                <input type="number" id="sal-amount" required min="1" placeholder="0">
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:flex-end;">
+                                <button type="submit" class="btn btn-primary" style="height:45px;"><i class="fa-solid fa-plus"></i> تسجيل الأجر</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel" style="margin-bottom:1.5rem;">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-list"></i> سجل الأجور</h2>
+                    </div>
+                    <div id="worker-salaries-list" class="history-list"></div>
+                    <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--text-secondary);">إجمالي الأجور:</span>
+                        <span id="total-salaries-display" style="color:var(--warning); font-size:1.3rem; font-weight:700;">0.00 د.ج</span>
+                    </div>
+                </div>
+
+                <!-- سلفيات العمال -->
+                <div class="dashboard-grid" style="grid-template-columns:1fr; margin-bottom:1.5rem;">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-hand-holding-dollar"></i> سلفية عامل</h2>
+                        </div>
+                        <form id="worker-advance-form" class="grid-form">
+                            <div class="form-group">
+                                <label>اسم العامل</label>
+                                <input type="text" id="adv-worker-name" required placeholder="اسم العامل">
+                            </div>
+                            <div class="form-group">
+                                <label>مبلغ السلفية (د.ج)</label>
+                                <input type="number" id="adv-amount" required min="1" placeholder="0">
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:flex-end;">
+                                <button type="submit" class="btn btn-primary" style="height:45px;"><i class="fa-solid fa-plus"></i> تسجيل السلفية</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-list"></i> سجل السلفيات</h2>
+                    </div>
+                    <div id="worker-advances-list" class="history-list"></div>
+                    <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--text-secondary);">إجمالي السلفيات:</span>
+                        <span id="total-advances-display" style="color:#3b82f6; font-size:1.3rem; font-weight:700;">0.00 د.ج</span>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
     <!-- Sidebar Overlay for mobile -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- بانر تثبيت التطبيق -->
+    <div id="install-banner" class="install-banner" style="display:none;">
+        <div class="install-banner-content">
+            <img src="./icon.png" class="install-icon" alt="أناقة">
+            <div class="install-text">
+                <strong>أناقة للرجال</strong>
+                <span>ثبّت التطبيق على شاشتك الرئيسية</span>
+            </div>
+        </div>
+        <div class="install-banner-actions">
+            <button class="btn-install" id="btn-install">تثبيت <i class="fa-solid fa-download"></i></button>
+            <button class="btn-dismiss" id="btn-dismiss-install"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
 
     <!-- Modal receipt -->
     <div id="receipt-modal" class="modal">

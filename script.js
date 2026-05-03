@@ -1,95 +1,87 @@
-// ================== إعدادات Firebase والمزامنة ==================
-
+// ================== Firebase ==================
 const firebaseConfig = {
-  apiKey: "AIzaSyAZwrvW6goAs7SjMPmksXWiU1x57r4UbwU",
-  authDomain: "yasin-b993b.firebaseapp.com",
-  projectId: "yasin-b993b",
-  storageBucket: "yasin-b993b.firebasestorage.app",
-  messagingSenderId: "1094100813279",
-  appId: "1:1094100813279:web:bb4cf51c0ecc313a58f06a",
-  measurementId: "G-NG5F1J11DY"
+    apiKey: "AIzaSyAZwrvW6goAs7SjMPmksXWiU1x57r4UbwU",
+    authDomain: "yasin-b993b.firebaseapp.com",
+    projectId: "yasin-b993b",
+    storageBucket: "yasin-b993b.firebasestorage.app",
+    messagingSenderId: "1094100813279",
+    appId: "1:1094100813279:web:bb4cf51c0ecc313a58f06a"
 };
-
-// تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// المتغيرات المحلية 
+// ================== المتغيرات ==================
 let inventory = [];
 let salesHistory = [];
 let expenses = [];
-let storeData = { totalIncome: 0.00, netProfit: 0.00, totalLosses: 0.00 };
+let workerAdvances = [];
+let workerSalaries = [];
+let storeData = { totalIncome: 0, netProfit: 0, totalLosses: 0 };
 
-// الاستماع للتغييرات في الوقت الفعلي
-db.collection("store").doc("data").onSnapshot((doc) => {
+// ================== مستمعو Firebase ==================
+db.collection("store").doc("data").onSnapshot(doc => {
     if (doc.exists) {
         storeData = doc.data();
-        if(storeData.logo) updateLogoUI(storeData.logo);
+        if (storeData.logo) updateLogoUI(storeData.logo);
     } else {
         db.collection("store").doc("data").set(storeData);
     }
     updateUI();
 });
 
-db.collection("inventory").onSnapshot((snapshot) => {
-    inventory = [];
-    snapshot.forEach((doc) => inventory.push({ id: doc.id, ...doc.data() }));
+db.collection("inventory").onSnapshot(snapshot => {
+    inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     updateUI();
 });
 
-db.collection("sales_history").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-    salesHistory = [];
-    snapshot.forEach((doc) => salesHistory.push({ id: doc.id, ...doc.data() }));
+db.collection("sales_history").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    salesHistory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     updateUI();
 });
 
-db.collection("expenses").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-    expenses = [];
-    snapshot.forEach((doc) => expenses.push({ id: doc.id, ...doc.data() }));
+db.collection("expenses").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     updateUI();
 });
 
-// دالة لتحديث إحصائيات المتجر
-async function updateStoreDataInDB() {
-    await db.collection("store").doc("data").set(storeData);
-}
+db.collection("worker_advances").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    workerAdvances = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    updateUI();
+});
 
-// دالة تحديث الواجهة الرئيسية
+db.collection("worker_salaries").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    workerSalaries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    updateUI();
+});
+
+// ================== تحديث الواجهة ==================
 function updateUI() {
-    const formatCurrency = (amount) => amount.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
+    const fmt = n => n.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
+    const capital = inventory.reduce((s, i) => s + i.qty * i.buyPrice, 0);
 
-    // حساب إجمالي رأس المال بناءً على المخزون الفعلي
-    const capital = inventory.reduce((sum, item) => sum + (item.qty * item.buyPrice), 0);
+    document.getElementById('total-capital').innerText = fmt(capital);
+    document.getElementById('total-income').innerText = fmt(storeData.totalIncome || 0);
+    document.getElementById('net-profit').innerText = fmt(storeData.netProfit || 0);
+    document.getElementById('total-losses').innerText = fmt(storeData.totalLosses || 0);
 
-    document.getElementById('total-capital').innerText = formatCurrency(capital);
-    document.getElementById('total-income').innerText = formatCurrency(storeData.totalIncome);
-    document.getElementById('net-profit').innerText = formatCurrency(storeData.netProfit);
-    document.getElementById('total-losses').innerText = formatCurrency(storeData.totalLosses);
-
-    // تحديث الأقسام المرتبطة بالمخزون
     renderInventoryCards();
-    populateSaleDropdown();
     checkLowStock();
     renderPOSProducts();
-    renderDashboardGrid();
     renderSalesHistory();
     renderExpenses();
+    renderWorkerSalaries();
+    renderWorkerAdvances();
 }
 
-// ---------------- إدارة المخزون ---------------- //
-
-// دالة عرض المخزون في بطاقات
+// ================== المخزون ==================
 function renderInventoryCards() {
     const container = document.getElementById('inventory-cards-container');
+    if (!container) return;
     container.innerHTML = '';
-
     inventory.forEach(item => {
         let qtyBadge = `<span class="badge badge-success">${item.qty}</span>`;
-        if (item.qty <= 0) {
-            qtyBadge = `<span class="badge badge-danger">نفد</span>`;
-        } else if (item.qty <= 3) {
-            qtyBadge = `<span class="badge badge-warning">${item.qty} (قليل)</span>`;
-        }
+        if (item.qty <= 0) qtyBadge = `<span class="badge badge-danger">نفد</span>`;
+        else if (item.qty <= 3) qtyBadge = `<span class="badge badge-warning">${item.qty} (قليل)</span>`;
 
         const card = document.createElement('div');
         card.className = 'product-card';
@@ -101,7 +93,7 @@ function renderInventoryCards() {
                     <span class="detail-label">الكمية:</span>
                     <span class="detail-value">${qtyBadge}</span>
                 </div>
-                <div class="detail-row">
+                <div class="detail-row buy-price-row">
                     <span class="detail-label">سعر الشراء:</span>
                     <span class="detail-value">${item.buyPrice} د.ج</span>
                 </div>
@@ -111,7 +103,7 @@ function renderInventoryCards() {
                 </div>
             </div>
             <div class="product-actions">
-                <button class="btn-delete-card" onclick="deleteProduct(${item.id})">
+                <button class="btn-delete-card" onclick="deleteProduct('${item.id}')">
                     <i class="fa-solid fa-trash"></i> حذف
                 </button>
             </div>
@@ -120,213 +112,65 @@ function renderInventoryCards() {
     });
 }
 
-// إضافة منتج جديد
 document.getElementById('add-product-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
-    const newProduct = {
-        name: document.getElementById('inv-name').value,
-        qty: parseInt(document.getElementById('inv-quantity').value),
-        buyPrice: parseFloat(document.getElementById('inv-buy').value),
-        sellPrice: parseFloat(document.getElementById('inv-sell').value)
-    };
-
     try {
-        await db.collection("inventory").add(newProduct);
+        await db.collection("inventory").add({
+            name: document.getElementById('inv-name').value,
+            qty: parseInt(document.getElementById('inv-quantity').value),
+            buyPrice: parseFloat(document.getElementById('inv-buy').value),
+            sellPrice: parseFloat(document.getElementById('inv-sell').value)
+        });
         this.reset();
-        // لا نحتاج لاستدعاء updateUI لأن onSnapshot سيتكفل بالأمر
-    } catch (error) {
-        console.error("Error adding product: ", error);
+    } catch (err) {
         alert("حدث خطأ أثناء الإضافة.");
     }
 });
 
-// حذف منتج
 async function deleteProduct(id) {
-    if(confirm('هل أنت متأكد من حذف هذا المنتج نهائياً من المخزون؟')) {
-        try {
-            await db.collection("inventory").doc(id).delete();
-        } catch (error) {
-            console.error("Error removing product: ", error);
-        }
+    if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+        await db.collection("inventory").doc(id).delete();
     }
 }
 
-// ---------------- لوحة القيادة - بيع سريع بالمربعات ---------------- //
-
-let dashSelectedProductId = null;
-let dashQty = 1;
-
-// لم يعد هناك حاجة للقائمة المنسدلة - احتفظنا بالدالة فارغة لتجنب أخطاء
- function populateSaleDropdown() {}
-
-function renderDashboardGrid(filterQuery = '') {
-    const grid = document.getElementById('dashboard-products-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    const filtered = inventory.filter(item =>
-        item.qty > 0 && item.name.toLowerCase().includes(filterQuery.toLowerCase())
-    );
-
-    if (filtered.length === 0) {
-        grid.innerHTML = '<p class="text-secondary" style="text-align:center; padding: 1rem;">لا توجد منتجات متاحة</p>';
-        return;
-    }
-
-    filtered.forEach(item => {
-        const card = document.createElement('div');
-        const isSelected = dashSelectedProductId === item.id;
-        card.className = 'dash-product-card' + (isSelected ? ' selected' : '');
-        card.onclick = () => selectDashProduct(item.id);
-        card.innerHTML = `
-            <div class="dash-card-qty">${item.qty}</div>
-            <i class="fa-solid fa-shirt dash-card-icon"></i>
-            <div class="dash-card-name">${item.name}</div>
-            <div class="dash-card-price">${item.sellPrice} د.ج</div>
-        `;
-        grid.appendChild(card);
-    });
-}
-
-function selectDashProduct(id) {
-    const product = inventory.find(p => p.id === id);
-    if (!product) return;
-
-    dashSelectedProductId = id;
-    dashQty = 1;
-
-    document.getElementById('selected-product-name').innerText = product.name;
-    document.getElementById('selected-product-price').innerText = `سعر البيع: ${product.sellPrice} د.ج | الكمية المتوفرة: ${product.qty}`;
-    document.getElementById('dash-qty-display').innerText = dashQty;
-    document.getElementById('dashboard-sale-action').style.display = 'block';
-
-    // تحديث تظليل البطاقة المختارة
-    const cards = document.querySelectorAll('.dash-product-card');
-    cards.forEach(c => c.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-}
-
-function changeDashQty(delta) {
-    const product = inventory.find(p => p.id === dashSelectedProductId);
-    if (!product) return;
-    dashQty = Math.max(1, Math.min(dashQty + delta, product.qty));
-    document.getElementById('dash-qty-display').innerText = dashQty;
-}
-
-async function confirmDashboardSale() {
-    if (!dashSelectedProductId) return;
-    const product = inventory.find(p => p.id === dashSelectedProductId);
-    if (!product || dashQty > product.qty) {
-        alert('الكمية المحددة تتجاوز المخزون!');
-        return;
-    }
-
-    product.qty -= dashQty;
-    const totalCost = product.buyPrice * dashQty;
-    const totalRevenue = product.sellPrice * dashQty;
-    storeData.totalIncome += totalRevenue;
-    storeData.netProfit += (totalRevenue - totalCost);
-
-    // تسجيل في سجل المبيعات
-    const saleRecord = {
-        productName: product.name,
-        productId: product.id,
-        qty: dashQty,
-        buyPrice: product.buyPrice,
-        sellPrice: product.sellPrice,
-        total: totalRevenue,
-        profit: totalRevenue - totalCost,
-        date: new Date().toLocaleString('ar-DZ'),
-        returned: false,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    try {
-        let batch = db.batch();
-        
-        let prodRef = db.collection("inventory").doc(product.id);
-        batch.update(prodRef, { qty: product.qty });
-        
-        let saleRef = db.collection("sales_history").doc();
-        batch.set(saleRef, saleRecord);
-        
-        let storeRef = db.collection("store").doc("data");
-        batch.set(storeRef, storeData);
-        
-        await batch.commit();
-
-        showReceipt(product.name, product.sellPrice, dashQty, totalRevenue);
-
-        // إعادة تعيين
-        dashSelectedProductId = null;
-        dashQty = 1;
-        document.getElementById('dashboard-sale-action').style.display = 'none';
-        document.getElementById('dash-qty-display').innerText = 1;
-    } catch(error) {
-        console.error("Error in sale:", error);
-        alert("حدث خطأ أثناء تسجيل البيع.");
-    }
-}
-
-document.getElementById('dashboard-search').addEventListener('input', (e) => {
-    renderDashboardGrid(e.target.value);
-});
-
-// ---------------- التنبيهات ---------------- //
-
+// ================== تنبيهات المخزون ==================
 function checkLowStock() {
-    const alertsList = document.getElementById('dashboard-alerts');
-    alertsList.innerHTML = '';
-
-    const lowStockItems = inventory.filter(item => item.qty <= 3);
-
-    if (lowStockItems.length === 0) {
-        alertsList.innerHTML = '<li class="alert-item" style="background:transparent; border:none"><span class="text-secondary">المخزون بحالة جيدة</span></li>';
+    const list = document.getElementById('dashboard-alerts');
+    if (!list) return;
+    list.innerHTML = '';
+    const low = inventory.filter(i => i.qty <= 3);
+    if (low.length === 0) {
+        list.innerHTML = '<li class="alert-item" style="background:transparent;border:none"><span class="text-secondary">المخزون بحالة جيدة</span></li>';
         return;
     }
-
-    lowStockItems.forEach(item => {
-        const isOutOfStock = item.qty === 0;
-        const colorClass = isOutOfStock ? 'danger' : 'warning';
-        const iconClass = isOutOfStock ? 'fa-circle-xmark' : 'fa-triangle-exclamation';
-        const styleText = isOutOfStock ? 'background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2);' : '';
-        const colorText = isOutOfStock ? 'color: var(--danger)' : '';
-
+    low.forEach(item => {
+        const out = item.qty === 0;
         const li = document.createElement('li');
-        li.className = `alert-item ${colorClass}`;
-        if(isOutOfStock) li.style.cssText = styleText;
-
+        li.className = `alert-item ${out ? 'danger' : 'warning'}`;
+        if (out) li.style.cssText = 'background-color:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.2);';
         li.innerHTML = `
-            <i class="fa-solid ${iconClass}" style="${colorText}"></i>
+            <i class="fa-solid ${out ? 'fa-circle-xmark' : 'fa-triangle-exclamation'}" style="${out ? 'color:var(--danger)' : ''}"></i>
             <div class="alert-details">
-                <h4 style="${colorText}">${item.name}</h4>
-                <span>الكمية المتبقية: ${isOutOfStock ? 'نفد تماماً!' : item.qty + ' فقط'}</span>
+                <h4 style="${out ? 'color:var(--danger)' : ''}">${item.name}</h4>
+                <span>الكمية المتبقية: ${out ? 'نفد تماماً!' : item.qty + ' فقط'}</span>
             </div>
         `;
-        alertsList.appendChild(li);
+        list.appendChild(li);
     });
 }
 
-// ---------------- نقطة البيع (POS) ---------------- //
-
+// ================== نقطة البيع ==================
 let posCart = [];
 
 function renderPOSProducts(filterQuery = '') {
     const grid = document.getElementById('pos-products-grid');
     if (!grid) return;
-    
     grid.innerHTML = '';
-
-    const filtered = inventory.filter(item => 
-        item.name.toLowerCase().includes(filterQuery.toLowerCase()) && item.qty > 0
-    );
-
+    const filtered = inventory.filter(i => i.qty > 0 && i.name.toLowerCase().includes(filterQuery.toLowerCase()));
     if (filtered.length === 0) {
-        grid.innerHTML = '<p class="text-secondary" style="grid-column: 1/-1; text-align: center;">لا توجد منتجات مطابقة</p>';
+        grid.innerHTML = '<p class="text-secondary" style="grid-column:1/-1;text-align:center;">لا توجد منتجات مطابقة</p>';
         return;
     }
-
     filtered.forEach(item => {
         const card = document.createElement('div');
         card.className = 'pos-card';
@@ -341,22 +185,15 @@ function renderPOSProducts(filterQuery = '') {
     });
 }
 
-document.getElementById('pos-search').addEventListener('input', (e) => {
-    renderPOSProducts(e.target.value);
-});
+document.getElementById('pos-search').addEventListener('input', e => renderPOSProducts(e.target.value));
 
 function addToCart(productId) {
     const product = inventory.find(p => p.id === productId);
     if (!product || product.qty <= 0) return;
-
-    const cartItem = posCart.find(item => item.id === productId);
+    const cartItem = posCart.find(i => i.id === productId);
     if (cartItem) {
-        if (cartItem.cartQty < product.qty) {
-            cartItem.cartQty++;
-        } else {
-            alert('الكمية المطلوبة تتجاوز المخزون!');
-            return;
-        }
+        if (cartItem.cartQty < product.qty) cartItem.cartQty++;
+        else { alert('الكمية المطلوبة تتجاوز المخزون!'); return; }
     } else {
         posCart.push({ ...product, cartQty: 1 });
     }
@@ -364,21 +201,13 @@ function addToCart(productId) {
 }
 
 function updateCartQty(productId, change) {
-    const cartItemIndex = posCart.findIndex(item => item.id === productId);
-    if (cartItemIndex === -1) return;
-
-    const cartItem = posCart[cartItemIndex];
+    const idx = posCart.findIndex(i => i.id === productId);
+    if (idx === -1) return;
+    const cartItem = posCart[idx];
     const product = inventory.find(p => p.id === productId);
-
     cartItem.cartQty += change;
-
-    if (cartItem.cartQty <= 0) {
-        posCart.splice(cartItemIndex, 1);
-    } else if (cartItem.cartQty > product.qty) {
-        alert('الكمية المطلوبة تتجاوز المخزون!');
-        cartItem.cartQty = product.qty;
-    }
-
+    if (cartItem.cartQty <= 0) posCart.splice(idx, 1);
+    else if (cartItem.cartQty > product.qty) { alert('الكمية تتجاوز المخزون!'); cartItem.cartQty = product.qty; }
     renderCart();
 }
 
@@ -386,20 +215,15 @@ function renderCart() {
     const container = document.getElementById('cart-items-container');
     const totalEl = document.getElementById('cart-total');
     if (!container || !totalEl) return;
-    
     container.innerHTML = '';
     let total = 0;
-
     if (posCart.length === 0) {
-        container.innerHTML = '<div class="empty-cart-msg text-secondary" style="text-align: center; padding: 2rem 0;">السلة فارغة حالياً</div>';
+        container.innerHTML = '<div class="empty-cart-msg text-secondary" style="text-align:center;padding:2rem 0;">السلة فارغة حالياً</div>';
         totalEl.innerText = '0.00 د.ج';
         return;
     }
-
     posCart.forEach(item => {
-        const itemTotal = item.sellPrice * item.cartQty;
-        total += itemTotal;
-
+        total += item.sellPrice * item.cartQty;
         const div = document.createElement('div');
         div.className = 'cart-item';
         div.innerHTML = `
@@ -408,259 +232,124 @@ function renderCart() {
                 <span class="cart-item-price">${item.sellPrice} د.ج</span>
             </div>
             <div class="cart-item-qty">
-                <button class="qty-btn" onclick="updateCartQty(${item.id}, 1)"><i class="fa-solid fa-plus"></i></button>
+                <button class="qty-btn" onclick="updateCartQty('${item.id}', 1)"><i class="fa-solid fa-plus"></i></button>
                 <span>${item.cartQty}</span>
-                <button class="qty-btn" onclick="updateCartQty(${item.id}, -1)"><i class="fa-solid fa-minus"></i></button>
+                <button class="qty-btn" onclick="updateCartQty('${item.id}', -1)"><i class="fa-solid fa-minus"></i></button>
             </div>
         `;
         container.appendChild(div);
     });
-
     totalEl.innerText = total.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
 }
 
 document.getElementById('btn-checkout').addEventListener('click', async () => {
     if (posCart.length === 0) return;
-
-    let totalRevenue = 0;
-    let totalCost = 0;
-
-    let batch = db.batch();
-
+    let totalRevenue = 0, totalCost = 0;
+    const batch = db.batch();
     posCart.forEach(cartItem => {
         const product = inventory.find(p => p.id === cartItem.id);
-        if (product) {
-            const newQty = product.qty - cartItem.cartQty;
-            const itemTotal = cartItem.sellPrice * cartItem.cartQty;
-            const itemCost = cartItem.buyPrice * cartItem.cartQty;
-            const itemProfit = itemTotal - itemCost;
-            
-            totalRevenue += itemTotal;
-            totalCost += itemCost;
-            
-            let prodRef = db.collection("inventory").doc(product.id);
-            batch.update(prodRef, { qty: newQty });
-
-            let saleRef = db.collection("sales_history").doc();
-            batch.set(saleRef, {
-                productName: product.name,
-                productId: product.id,
-                qty: cartItem.cartQty,
-                buyPrice: cartItem.buyPrice,
-                sellPrice: cartItem.sellPrice,
-                total: itemTotal,
-                profit: itemProfit,
-                date: new Date().toLocaleString('ar-DZ'),
-                returned: false,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
+        if (!product) return;
+        const itemTotal = cartItem.sellPrice * cartItem.cartQty;
+        const itemCost = cartItem.buyPrice * cartItem.cartQty;
+        totalRevenue += itemTotal;
+        totalCost += itemCost;
+        batch.update(db.collection("inventory").doc(product.id), { qty: product.qty - cartItem.cartQty });
+        batch.set(db.collection("sales_history").doc(), {
+            productName: product.name, productId: product.id,
+            qty: cartItem.cartQty, buyPrice: cartItem.buyPrice, sellPrice: cartItem.sellPrice,
+            total: itemTotal, profit: itemTotal - itemCost,
+            date: new Date().toLocaleString('ar-DZ'), returned: false,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
     });
-
-    const profit = totalRevenue - totalCost;
     storeData.totalIncome += totalRevenue;
-    storeData.netProfit += profit;
-
-    let storeRef = db.collection("store").doc("data");
-    batch.set(storeRef, storeData);
-
+    storeData.netProfit += (totalRevenue - totalCost);
+    batch.set(db.collection("store").doc("data"), storeData);
     try {
         await batch.commit();
-
-        // تجهيز عناصر القسيمة
-        const now = new Date();
-        document.getElementById('receipt-date').innerText = now.toLocaleString('ar-DZ');
-        
-        let receiptHtml = '';
-        posCart.forEach(item => {
-            receiptHtml += `
-                <tr>
-                    <td>${item.name}</td>
-                    <td>${item.cartQty}</td>
-                    <td>${item.sellPrice}</td>
-                    <td>${item.sellPrice * item.cartQty}</td>
-                </tr>
-            `;
-        });
-        
-        document.getElementById('receipt-items').innerHTML = receiptHtml;
+        document.getElementById('receipt-date').innerText = new Date().toLocaleString('ar-DZ');
+        document.getElementById('receipt-items').innerHTML = posCart.map(i => `
+            <tr><td>${i.name}</td><td>${i.cartQty}</td><td>${i.sellPrice}</td><td>${i.sellPrice * i.cartQty}</td></tr>
+        `).join('');
         document.getElementById('receipt-total').innerText = totalRevenue.toLocaleString('ar-DZ', { minimumFractionDigits: 2 });
         document.getElementById('receipt-modal').classList.add('show');
-
-        // تصفير السلة وتحديث الواجهة
         posCart = [];
         renderCart();
-    } catch(error) {
-        console.error("Checkout Error:", error);
+    } catch (err) {
         alert("حدث خطأ أثناء الدفع!");
     }
 });
 
-// ---------------- التبديل بين الخانات ---------------- //
-const navItems = document.querySelectorAll('.nav-item');
-const pageSections = document.querySelectorAll('.page-section');
-const pageTitle = document.getElementById('page-title');
-
-navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-        e.preventDefault();
-        navItems.forEach(nav => nav.classList.remove('active'));
-        item.classList.add('active');
-        
-        const targetId = item.getAttribute('data-target');
-        pageSections.forEach(sec => sec.style.display = 'none');
-        document.getElementById(targetId).style.display = 'block';
-
-        pageTitle.innerText = item.innerText;
-    });
-});
-
-// ---------------- الطباعة والقسيمة ---------------- //
-function showReceipt(productName, price, quantity, total) {
-    const now = new Date();
-    document.getElementById('receipt-date').innerText = now.toLocaleString('ar-DZ');
-
-    document.getElementById('receipt-items').innerHTML = `
-        <tr>
-            <td>${productName}</td>
-            <td>${quantity}</td>
-            <td>${price}</td>
-            <td>${total}</td>
-        </tr>
-    `;
-    document.getElementById('receipt-total').innerText = total.toLocaleString('ar-DZ', { minimumFractionDigits: 2 });
-    document.getElementById('receipt-modal').classList.add('show');
-}
-
-function closeReceipt() {
-    document.getElementById('receipt-modal').classList.remove('show');
-}
-
-function printReceipt() {
-    window.print();
-}
-
-// إعداد التاريخ والتهيئة المبدئية عند فتح التطبيق
-document.getElementById('current-date').innerText = new Date().toLocaleDateString('ar-DZ', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-});
-
-// ---------------- سجل المبيعات ---------------- //
+// ================== سجل المبيعات ==================
 function renderSalesHistory(filterQuery = '') {
     const list = document.getElementById('history-list');
     if (!list) return;
     list.innerHTML = '';
-    
-    // البيانات مرتبة مسبقاً من Firebase
-    const sortedHistory = [...salesHistory];
-    const filtered = sortedHistory.filter(item => 
-        item.productName.toLowerCase().includes(filterQuery.toLowerCase())
-    );
-
+    const filtered = salesHistory.filter(i => i.productName.toLowerCase().includes(filterQuery.toLowerCase()));
     if (filtered.length === 0) {
-        list.innerHTML = '<p class="text-secondary" style="text-align:center; padding: 2rem;">لا توجد مبيعات مسجلة</p>';
+        list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:2rem;">لا توجد مبيعات مسجلة</p>';
         return;
     }
-
     filtered.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'alert-item';
-        itemDiv.style.justifyContent = 'space-between';
-        itemDiv.style.alignItems = 'center';
-        if(item.returned) {
-            itemDiv.style.opacity = '0.6';
-            itemDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-        }
-
-        itemDiv.innerHTML = `
-            <div style="display:flex; gap:1rem;">
-                <i class="fa-solid fa-file-invoice" style="color:var(--accent-primary); font-size: 1.5rem; margin-top:0.2rem;"></i>
+        const div = document.createElement('div');
+        div.className = 'alert-item';
+        div.style.cssText = 'justify-content:space-between;align-items:center;';
+        if (item.returned) { div.style.opacity = '0.6'; div.style.backgroundColor = 'rgba(255,255,255,0.05)'; }
+        div.innerHTML = `
+            <div style="display:flex;gap:1rem;">
+                <i class="fa-solid fa-file-invoice" style="color:var(--accent-primary);font-size:1.5rem;margin-top:0.2rem;"></i>
                 <div class="alert-details">
-                    <h4 style="margin-bottom:0.2rem; ${item.returned ? 'text-decoration: line-through;' : ''}">${item.productName}</h4>
-                    <span style="color:var(--text-secondary); font-size:0.85rem;">
-                        الكمية: ${item.qty} | السعر: ${item.sellPrice} د.ج | الإجمالي: ${item.total} د.ج <br>
-                        ${item.date}
+                    <h4 style="margin-bottom:0.2rem;${item.returned ? 'text-decoration:line-through;' : ''}">${item.productName}</h4>
+                    <span style="color:var(--text-secondary);font-size:0.85rem;">
+                        الكمية: ${item.qty} | السعر: ${item.sellPrice} د.ج | الإجمالي: ${item.total} د.ج<br>${item.date}
                     </span>
-                    ${item.returned ? '<span style="color:var(--danger); display:block; margin-top:0.3rem; font-weight:bold;">[تم الإرجاع]</span>' : ''}
+                    ${item.returned ? '<span style="color:var(--danger);display:block;margin-top:0.3rem;font-weight:bold;">[تم الإرجاع]</span>' : ''}
                 </div>
             </div>
-            <div>
-                ${!item.returned ? `<button class="btn btn-danger" style="padding: 0.5rem 1rem; width: auto; font-size: 0.9rem;" onclick="returnSaleItem(${item.id})"><i class="fa-solid fa-rotate-left"></i> إرجاع</button>` : ''}
-            </div>
+            <div>${!item.returned ? `<button class="btn btn-danger" style="padding:0.5rem 1rem;width:auto;font-size:0.9rem;" onclick="returnSaleItem('${item.id}')"><i class="fa-solid fa-rotate-left"></i> إرجاع</button>` : ''}</div>
         `;
-        list.appendChild(itemDiv);
+        list.appendChild(div);
     });
 }
 
 async function returnSaleItem(saleId) {
-    if(!confirm('هل أنت متأكد من إرجاع هذه العملية؟ (سيتم إعادة الكمية للمخزون وخصم المبلغ من الأرباح)')) return;
-    
-    const saleIndex = salesHistory.findIndex(s => s.id === saleId);
-    if(saleIndex === -1) return;
-    
-    const sale = salesHistory[saleIndex];
-    if(sale.returned) return;
-    
+    if (!confirm('هل أنت متأكد من إرجاع هذه العملية؟')) return;
+    const sale = salesHistory.find(s => s.id === saleId);
+    if (!sale || sale.returned) return;
     try {
-        let batch = db.batch();
-
-        // استرجاع الكمية للمخزون
+        const batch = db.batch();
         const product = inventory.find(p => p.id === sale.productId);
-        if(product) {
-            let prodRef = db.collection("inventory").doc(sale.productId);
-            batch.update(prodRef, { qty: product.qty + sale.qty });
-        }
-        
-        // خصم الأرباح والإيرادات
+        if (product) batch.update(db.collection("inventory").doc(sale.productId), { qty: product.qty + sale.qty });
         storeData.totalIncome -= sale.total;
         storeData.netProfit -= sale.profit;
-        
-        let storeRef = db.collection("store").doc("data");
-        batch.set(storeRef, storeData);
-
-        // تحديث حالة العملية
-        let saleRef = db.collection("sales_history").doc(saleId);
-        batch.update(saleRef, { returned: true });
-        
+        batch.set(db.collection("store").doc("data"), storeData);
+        batch.update(db.collection("sales_history").doc(saleId), { returned: true });
         await batch.commit();
-    } catch(error) {
-        console.error("Error returning sale:", error);
+        alert('تم الإرجاع بنجاح');
+    } catch (err) {
         alert("حدث خطأ أثناء الإرجاع!");
     }
 }
 
-document.getElementById('history-search').addEventListener('input', (e) => {
-    renderSalesHistory(e.target.value);
-});
+document.getElementById('history-search').addEventListener('input', e => renderSalesHistory(e.target.value));
 
-// ---------------- المصاريف والخسائر ---------------- //
+// ================== المصاريف ==================
 document.getElementById('expense-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const desc = document.getElementById('exp-desc').value;
     const amount = parseFloat(document.getElementById('exp-amount').value);
-    
-    const newExpense = {
-        desc: desc,
-        amount: amount,
-        date: new Date().toLocaleString('ar-DZ'),
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    
     storeData.totalLosses += amount;
-    storeData.netProfit -= amount; // خصم المصروف من الأرباح الصافية
-    
+    storeData.netProfit -= amount;
     try {
-        let batch = db.batch();
-        let expRef = db.collection("expenses").doc();
-        batch.set(expRef, newExpense);
-        
-        let storeRef = db.collection("store").doc("data");
-        batch.set(storeRef, storeData);
-        
+        const batch = db.batch();
+        batch.set(db.collection("expenses").doc(), {
+            desc: document.getElementById('exp-desc').value, amount,
+            date: new Date().toLocaleString('ar-DZ'),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        batch.set(db.collection("store").doc("data"), storeData);
         await batch.commit();
         this.reset();
-    } catch(error) {
-        console.error("Error adding expense:", error);
+    } catch (err) {
         alert("حدث خطأ أثناء إضافة المصروف!");
     }
 });
@@ -670,70 +359,266 @@ function renderExpenses() {
     const totalDisplay = document.getElementById('total-expenses-display');
     if (!list || !totalDisplay) return;
     list.innerHTML = '';
-    
     if (expenses.length === 0) {
-        list.innerHTML = '<p class="text-secondary" style="text-align:center; padding: 2rem;">لا توجد مصاريف مسجلة</p>';
+        list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:2rem;">لا توجد مصاريف مسجلة</p>';
         totalDisplay.innerText = '0.00 د.ج';
         return;
     }
-
     expenses.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'alert-item';
-        itemDiv.style.justifyContent = 'space-between';
-        itemDiv.style.alignItems = 'center';
-        
-        itemDiv.innerHTML = `
-            <div style="display:flex; gap:1rem;">
-                <i class="fa-solid fa-money-bill-wave" style="color:var(--danger); font-size: 1.5rem; margin-top:0.2rem;"></i>
+        const div = document.createElement('div');
+        div.className = 'alert-item';
+        div.style.cssText = 'justify-content:space-between;align-items:center;';
+        div.innerHTML = `
+            <div style="display:flex;gap:1rem;">
+                <i class="fa-solid fa-money-bill-wave" style="color:var(--danger);font-size:1.5rem;margin-top:0.2rem;"></i>
                 <div class="alert-details">
                     <h4 style="margin-bottom:0.2rem;">${item.desc}</h4>
-                    <span style="color:var(--text-secondary); font-size:0.85rem;">${item.date}</span>
+                    <span style="color:var(--text-secondary);font-size:0.85rem;">${item.date}</span>
                 </div>
             </div>
-            <div>
-                <span class="text-danger" style="font-weight:bold;">${item.amount.toLocaleString('ar-DZ')} د.ج</span>
-            </div>
+            <span class="text-danger" style="font-weight:bold;">${item.amount.toLocaleString('ar-DZ')} د.ج</span>
         `;
-        list.appendChild(itemDiv);
+        list.appendChild(div);
     });
-    
-    totalDisplay.innerText = storeData.totalLosses.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
+    totalDisplay.innerText = expenses.reduce((s, i) => s + i.amount, 0).toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
 }
 
-// ---------------- تغيير الشعار ---------------- //
+// ================== أجور وسلفيات العمال ==================
+// الأجر يُخصم من الأرباح. السلفيات تُخصم من الأجر فقط.
+
+function renderWorkerSalaries() {
+    const list = document.getElementById('worker-salaries-list');
+    const totalDisplay = document.getElementById('total-salaries-display');
+    if (!list || !totalDisplay) return;
+    list.innerHTML = '';
+    if (workerSalaries.length === 0) {
+        list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:1.5rem;">لا توجد أجور مسجلة</p>';
+        totalDisplay.innerText = '0.00 د.ج';
+        return;
+    }
+    let total = 0;
+    workerSalaries.forEach(sal => {
+        total += sal.amount;
+        const advTotal = workerAdvances.filter(a => a.salaryId === sal.id).reduce((s, a) => s + a.amount, 0);
+        const remaining = sal.amount - advTotal;
+        const rColor = remaining < 0 ? 'var(--danger)' : remaining === 0 ? 'var(--success)' : 'var(--warning)';
+        const div = document.createElement('div');
+        div.className = 'alert-item';
+        div.style.cssText = 'flex-direction:column;align-items:stretch;gap:0.75rem;';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;gap:0.75rem;align-items:center;">
+                    <i class="fa-solid fa-user-tie" style="color:var(--warning);font-size:1.3rem;"></i>
+                    <div>
+                        <h4 style="margin-bottom:0.15rem;">${sal.workerName}</h4>
+                        <span style="color:var(--text-secondary);font-size:0.8rem;">${sal.date}</span>
+                    </div>
+                </div>
+                <span style="color:var(--warning);font-weight:700;">${sal.amount.toLocaleString('ar-DZ')} د.ج</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.04);border-radius:0.5rem;padding:0.6rem 0.9rem;font-size:0.88rem;">
+                <span style="color:var(--text-secondary);">السلفيات: <strong style="color:#3b82f6;">${advTotal.toLocaleString('ar-DZ')} د.ج</strong></span>
+                <span>المتبقي: <strong style="color:${rColor};">${remaining.toLocaleString('ar-DZ')} د.ج</strong></span>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+    totalDisplay.innerText = total.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
+}
+
+function renderWorkerAdvances() {
+    const list = document.getElementById('worker-advances-list');
+    const totalDisplay = document.getElementById('total-advances-display');
+    if (!list || !totalDisplay) return;
+    list.innerHTML = '';
+    if (workerAdvances.length === 0) {
+        list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:1.5rem;">لا توجد سلفيات مسجلة</p>';
+        totalDisplay.innerText = '0.00 د.ج';
+        return;
+    }
+    let total = 0;
+    workerAdvances.forEach(item => {
+        total += item.amount;
+        const div = document.createElement('div');
+        div.className = 'alert-item';
+        div.style.cssText = 'justify-content:space-between;align-items:center;';
+        div.innerHTML = `
+            <div style="display:flex;gap:0.75rem;align-items:center;">
+                <i class="fa-solid fa-hand-holding-dollar" style="color:#3b82f6;font-size:1.3rem;"></i>
+                <div>
+                    <h4 style="margin-bottom:0.15rem;">${item.workerName}</h4>
+                    <span style="color:var(--text-secondary);font-size:0.8rem;">${item.date}</span>
+                </div>
+            </div>
+            <span style="color:#3b82f6;font-weight:700;">${item.amount.toLocaleString('ar-DZ')} د.ج</span>
+        `;
+        list.appendChild(div);
+    });
+    totalDisplay.innerText = total.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
+}
+
+const workerSalaryForm = document.getElementById('worker-salary-form');
+if (workerSalaryForm) workerSalaryForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const workerName = document.getElementById('sal-worker-name').value.trim();
+    const amount = parseFloat(document.getElementById('sal-amount').value);
+    storeData.totalLosses += amount;
+    storeData.netProfit -= amount;
+    try {
+        const batch = db.batch();
+        batch.set(db.collection("worker_salaries").doc(), {
+            workerName, amount,
+            date: new Date().toLocaleString('ar-DZ'),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        batch.set(db.collection("store").doc("data"), storeData);
+        await batch.commit();
+        this.reset();
+    } catch (err) {
+        alert("حدث خطأ أثناء تسجيل الأجر!");
+    }
+});
+
+const workerAdvanceForm = document.getElementById('worker-advance-form');
+if (workerAdvanceForm) workerAdvanceForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const workerName = document.getElementById('adv-worker-name').value.trim();
+    const amount = parseFloat(document.getElementById('adv-amount').value);
+    const lastSalary = workerSalaries.find(s => s.workerName.trim() === workerName);
+    const advTotal = workerAdvances.filter(a => lastSalary && a.salaryId === lastSalary.id).reduce((s, a) => s + a.amount, 0);
+    if (lastSalary && (advTotal + amount) > lastSalary.amount) {
+        alert(`تحذير: السلفيات تتجاوز الأجر (${lastSalary.amount.toLocaleString('ar-DZ')} د.ج)`);
+        return;
+    }
+    try {
+        await db.collection("worker_advances").add({
+            workerName, amount,
+            salaryId: lastSalary ? lastSalary.id : null,
+            date: new Date().toLocaleString('ar-DZ'),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        this.reset();
+    } catch (err) {
+        alert("حدث خطأ أثناء إضافة السلفية!");
+    }
+});
+
+// ================== الشعار ==================
 function updateLogoUI(logoStr) {
     const img = document.getElementById('app-logo-img');
-    if (logoStr) {
-        img.src = logoStr;
-    } else {
-        img.src = './icon.png';
-    }
+    if (img) img.src = logoStr || './icon.png';
 }
 
 document.getElementById('logo-upload').addEventListener('change', function(e) {
     const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = async function(event) {
-            const base64Str = event.target.result;
-            // Update UI
-            updateLogoUI(base64Str);
-            // Save to Firestore
-            storeData.logo = base64Str;
-            try {
-                await updateStoreDataInDB();
-            } catch(err) {
-                console.error("Error saving logo:", err);
-            }
-        };
-        reader.readAsDataURL(file);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+        const base64 = ev.target.result;
+        updateLogoUI(base64);
+        storeData.logo = base64;
+        await db.collection("store").doc("data").set(storeData);
+    };
+    reader.readAsDataURL(file);
+});
+
+// ================== التنقل بين الأقسام ==================
+const navItems = document.querySelectorAll('.nav-item');
+const pageSections = document.querySelectorAll('.page-section');
+const pageTitle = document.getElementById('page-title');
+
+navItems.forEach(item => {
+    item.addEventListener('click', e => {
+        e.preventDefault();
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        const targetId = item.getAttribute('data-target');
+        pageSections.forEach(s => s.style.display = 'none');
+        document.getElementById(targetId).style.display = 'block';
+        pageTitle.innerText = item.innerText.trim();
+    });
+});
+
+// ================== الطباعة ==================
+function closeReceipt() { document.getElementById('receipt-modal').classList.remove('show'); }
+function printReceipt() { window.print(); }
+
+// ================== التاريخ ==================
+document.getElementById('current-date').innerText = new Date().toLocaleDateString('ar-DZ', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+});
+
+// ================== الأدوار (مدير / عامل) ==================
+let currentRole = null;
+
+function applyRole(role) {
+    currentRole = role;
+    const isWorker = role === 'worker';
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.style.display = (isWorker && el.getAttribute('data-target') === 'section-inventory') ? 'none' : 'flex';
+    });
+    document.querySelectorAll('.card-capital, .card-profit, .card-loss').forEach(el => {
+        el.style.display = isWorker ? 'none' : '';
+    });
+    const dashCards = document.querySelector('.dashboard-cards');
+    if (dashCards) dashCards.style.gridTemplateColumns = isWorker ? '1fr' : '';
+    document.body.classList.toggle('role-worker', isWorker);
+    navItems.forEach(n => n.classList.remove('active'));
+    const dashNav = document.querySelector('[data-target="section-dashboard"]');
+    if (dashNav) dashNav.classList.add('active');
+    pageSections.forEach(s => s.style.display = 'none');
+    document.getElementById('section-dashboard').style.display = 'block';
+    if (pageTitle) pageTitle.innerText = 'لوحة القيادة';
+}
+
+// ================== تسجيل الدخول ==================
+function initLogin() {
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.querySelector('.app-container');
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    if (!loginForm) return;
+
+    loginForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const user = document.getElementById('login-username').value.trim();
+        const pass = document.getElementById('login-password').value;
+        if (user === 'admin' && pass === 'admin123') {
+            loginScreen.style.display = 'none';
+            appContainer.style.display = 'flex';
+            applyRole('admin');
+            sessionStorage.setItem('userRole', 'admin');
+        } else if (user === 'worker' && pass === 'worker123') {
+            loginScreen.style.display = 'none';
+            appContainer.style.display = 'flex';
+            applyRole('worker');
+            sessionStorage.setItem('userRole', 'worker');
+        } else {
+            loginError.style.display = 'block';
+            loginError.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+        }
+    });
+
+    const saved = sessionStorage.getItem('userRole');
+    if (saved) {
+        loginScreen.style.display = 'none';
+        appContainer.style.display = 'flex';
+        applyRole(saved);
     }
-});
+}
 
-});
+function logout() {
+    sessionStorage.removeItem('userRole');
+    currentRole = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.querySelector('.app-container').style.display = 'none';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').style.display = 'none';
+}
 
-// ---------------- القائمة الجانبية للموبايل ---------------- //
+initLogin();
+
+// ================== القائمة الجانبية (موبايل) ==================
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const sidebar = document.querySelector('.sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -742,24 +627,45 @@ if (hamburgerBtn && sidebar && sidebarOverlay) {
     function toggleSidebar() {
         sidebar.classList.toggle('open');
         sidebarOverlay.classList.toggle('active');
-        if(sidebar.classList.contains('open')) {
-            document.body.style.overflow = 'hidden'; // لمنع التمرير تحت القائمة
-        } else {
-            document.body.style.overflow = '';
-        }
+        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
     }
-
     hamburgerBtn.addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
-
-    // إغلاق القائمة عند النقر على أحد الروابط (للموبايل)
     navItems.forEach(item => {
         item.addEventListener('click', () => {
-            if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
-                toggleSidebar();
-            }
+            if (window.innerWidth <= 768 && sidebar.classList.contains('open')) toggleSidebar();
         });
     });
 }
 
 updateUI();
+
+// ================== PWA Install ==================
+let deferredInstallPrompt = null;
+const installBanner = document.getElementById('install-banner');
+const btnInstall = document.getElementById('btn-install');
+const btnDismiss = document.getElementById('btn-dismiss-install');
+
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (!sessionStorage.getItem('installDismissed')) installBanner.style.display = 'flex';
+});
+
+if (btnInstall) btnInstall.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    installBanner.style.display = 'none';
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') deferredInstallPrompt = null;
+});
+
+if (btnDismiss) btnDismiss.addEventListener('click', () => {
+    installBanner.style.display = 'none';
+    sessionStorage.setItem('installDismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+    installBanner.style.display = 'none';
+    deferredInstallPrompt = null;
+});
