@@ -1,0 +1,1523 @@
+:root {
+    --bg-main: #0B0F19; /* أزرق داكن جداً يميل للأسود */
+    --bg-surface: #111827; /* لون البطاقات */
+    --text-primary: #F3F4F6;
+    --text-secondary: #9CA3AF;
+    --accent-primary: #3B82F6; /* أزرق رجالي */
+    --success: #10B981; /* أخضر للأرباح */
+    --danger: #EF4444; /* أحمر للخسائر */
+    --warning: #F59E0B; /* برتقالي للتنبيهات */
+    --border-color: rgba(255, 255, 255, 0.05);
+    --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.3);
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    overflow: hidden; /* لمنع التمرير العام للتطبيق */
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* --- القائمة الجانبية --- */
+.sidebar {
+    width: 250px;
+    background-color: var(--bg-surface);
+    border-left: 1px solid var(--border-color);
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.8rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    color: var(--accent-primary);
+}
+
+.logo h2 {
+    font-size: 1.3rem;
+    white-space: nowrap;
+}
+
+.btn-change-logo {
+    position: absolute;
+    bottom: -5px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    transition: var(--transition);
+    z-index: 10;
+}
+.btn-change-logo:hover {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+.nav-item {
+    text-decoration: none;
+    color: var(--text-secondary);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    transition: var(--transition);
+}
+
+.nav-item i { width: 24px; text-align: center; }
+.nav-item:hover, .nav-item.active {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+}
+
+/* --- المحتوى الرئيسي --- */
+.main-content {
+    flex: 1;
+    padding: 2.5rem;
+    overflow-y: auto;
+}
+
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+}
+
+.avatar {
+    width: 45px; height: 45px;
+    background: linear-gradient(135deg, var(--accent-primary), #1E3A8A);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+}
+
+/* --- البطاقات --- */
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.card {
+    background-color: var(--bg-surface);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+/* شريط علوي متحرك عند الهوفر للبطاقة */
+.card::before {
+    content: ''; position: absolute; top: 0; right: 0; width: 100%; height: 4px;
+    background: var(--accent-primary);
+    transform: scaleX(0); transform-origin: right; transition: transform 0.4s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-soft);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.card:hover::before { transform: scaleX(1); }
+
+.card-icon {
+    width: 50px; height: 50px;
+    border-radius: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+}
+
+.card-capital .card-icon { color: #A78BFA; background: rgba(167, 139, 250, 0.1); }
+.card-income .card-icon { color: var(--accent-primary); background: rgba(59, 130, 246, 0.1); }
+.card-profit .card-icon { color: var(--success); background: rgba(16, 185, 129, 0.1); }
+.card-loss .card-icon { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+
+.card-info h3 { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+.card-info .value { font-size: 1.8rem; font-weight: 700; }
+.card-info .subtitle { font-size: 0.8rem; color: var(--text-secondary); }
+
+.text-blue { color: var(--accent-primary); }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+
+/* --- تخطيط الشبكة السفلية --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+}
+
+.panel {
+    background-color: var(--bg-surface);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+}
+
+.panel-header {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.form-group { margin-bottom: 1.25rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); }
+.form-group input, .form-group select {
+    width: 100%; padding: 0.8rem 1rem;
+    background-color: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem; color: var(--text-primary);
+    transition: var(--transition);
+}
+.form-group input:focus, .form-group select:focus {
+    outline: none; border-color: var(--accent-primary);
+}
+
+.btn {
+    width: 100%; padding: 1rem;
+    border: none; border-radius: 0.5rem;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; gap: 0.5rem;
+    transition: var(--transition);
+}
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary), #1E40AF);
+    color: white;
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.alert-item {
+    display: flex; gap: 1rem; padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.alert-item i { color: var(--warning); margin-top: 0.2rem; }
+.alert-details h4 { font-size: 0.95rem; }
+.alert-details span { font-size: 0.8rem; color: var(--text-secondary); }
+
+/* --- نافذة القسيمة (Modal) --- */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--bg-surface);
+    border-radius: 1rem;
+    width: 450px;
+    max-width: 90%;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.receipt-area {
+    padding: 2.5rem;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.receipt-header {
+    text-align: center;
+    border-bottom: 2px dashed #ccc;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.receipt-header h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; color: #111; }
+.receipt-header p { font-size: 1rem; color: #555; }
+.receipt-date { font-size: 0.85rem; color: #888; margin-top: 0.5rem; }
+
+.receipt-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+}
+
+.receipt-table th, .receipt-table td {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+    text-align: right;
+    font-size: 0.95rem;
+}
+
+.receipt-table th { font-weight: 600; color: #333; }
+
+.receipt-footer {
+    text-align: center;
+    border-top: 2px dashed #ccc;
+    padding-top: 1.5rem;
+}
+
+.receipt-footer h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; color: #111; }
+.receipt-footer p { font-size: 0.85rem; color: #777; }
+
+.modal-actions {
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    background-color: var(--bg-surface);
+}
+
+.btn-danger {
+    background: #EF4444; color: white;
+}
+.btn-danger:hover {
+    background: #DC2626;
+    transform: translateY(-2px);
+}
+
+/* --- شبكة الفورم والجداول (Inventory) --- */
+.grid-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+/* --- شبكة بيع لوحة القيادة السريعة --- */
+.dashboard-pos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.75rem;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 0.25rem;
+}
+
+.dash-product-card {
+    background-color: rgba(0,0,0,0.25);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 0.9rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    text-align: center;
+    user-select: none;
+}
+
+.dash-product-card:hover {
+    border-color: var(--accent-primary);
+    background-color: rgba(59, 130, 246, 0.08);
+    transform: translateY(-3px);
+}
+
+.dash-product-card.selected {
+    border-color: var(--accent-primary);
+    background-color: rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.dash-card-qty {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.3rem;
+}
+
+.dash-card-icon {
+    font-size: 1.6rem;
+    color: var(--accent-primary);
+}
+
+.dash-card-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.dash-card-price {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* --- شبكة المنتجات (Cards) --- */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.product-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-soft);
+}
+
+.product-icon {
+    font-size: 2.5rem;
+    color: var(--accent-primary);
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.product-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.product-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    padding: 1rem;
+    border-radius: 0.75rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.detail-label {
+    color: var(--text-secondary);
+}
+
+.detail-value {
+    font-weight: 600;
+}
+
+.badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-danger { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); }
+.badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--warning); }
+.badge-success { background-color: rgba(16, 185, 129, 0.2); color: var(--success); }
+
+.product-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.btn-delete-card {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    width: 100%;
+    padding: 0.7rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-delete-card:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* --- نقطة البيع (POS) --- */
+.pos-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    height: calc(100vh - 120px);
+}
+
+.pos-products-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow: hidden;
+}
+
+.pos-header {
+    background-color: var(--bg-surface);
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.search-box {
+    position: relative;
+    width: 100%;
+}
+
+.search-box i {
+    position: absolute;
+    right: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+.search-box input {
+    width: 100%;
+    padding: 1rem 2.5rem 1rem 1rem;
+    background-color: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.pos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.pos-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    user-select: none;
+}
+
+.pos-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-primary);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.2);
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.pos-card .pos-icon {
+    font-size: 2rem;
+    color: var(--accent-primary);
+}
+
+.pos-card .pos-name {
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.pos-card .pos-price {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.pos-card .pos-stock {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.75rem;
+}
+
+.pos-cart-area {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.cart-items {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding-right: 0.5rem;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0,0,0,0.2);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255,255,255,0.02);
+}
+
+.cart-item-info h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+}
+
+.cart-item-price {
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+}
+
+.cart-item-qty {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qty-btn {
+    background-color: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.qty-btn:hover { background-color: var(--accent-primary); }
+
+/* ============================================
+   صفحة تسجيل الدخول
+   ============================================ */
+.login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0b0f19 0%, #1a1f35 50%, #0b0f19 100%);
+    padding: 1.5rem;
+}
+
+.login-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.login-logo {
+    margin-bottom: 2rem;
+}
+
+.login-logo-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--accent-primary);
+    margin-bottom: 1rem;
+}
+
+.login-logo h1 {
+    font-size: 1.6rem;
+    color: var(--accent-primary);
+    margin-bottom: 0.3rem;
+}
+
+.login-logo p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.login-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.login-field i {
+    position: absolute;
+    right: 1rem;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    z-index: 1;
+}
+
+.login-field input {
+    width: 100%;
+    padding: 0.9rem 1rem 0.9rem 1rem;
+    padding-right: 2.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: 'Outfit', sans-serif;
+    transition: var(--transition);
+}
+
+.login-field input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.login-field input::placeholder {
+    color: var(--text-secondary);
+}
+
+.login-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--danger);
+    padding: 0.7rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.btn-login {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    padding: 0.9rem;
+    border-radius: 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    font-family: 'Outfit', sans-serif;
+    margin-top: 0.5rem;
+}
+
+.btn-login:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+.login-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.login-footer p {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    direction: ltr;
+    margin-bottom: 0.2rem;
+}
+
+/* ============================================
+   شاشة اختيار نوع تسجيل الدخول
+   ============================================ */
+.login-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.selection-title {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.btn-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 1.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'Outfit', sans-serif;
+}
+
+.btn-selection i {
+    font-size: 2rem;
+}
+
+.btn-selection:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-admin {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.btn-admin:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+}
+
+.btn-worker {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.btn-worker:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.btn-back {
+    width: 100%;
+    padding: 0.8rem;
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+.btn-back:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   زر تسجيل الخروج
+   ============================================ */
+.sidebar-bottom {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-logout {
+    width: 100%;
+    padding: 0.8rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+}
+
+.btn-logout:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.btn-header-logout {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.btn-header-logout:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+/* ============================================
+   دور العامل - إخفاء أسعار الشراء
+   ============================================ */
+.role-worker .buy-price-row {
+    display: none !important;
+}
+
+/* ============================================
+   بانر تثبيت التطبيق (PWA Install Banner)
+   ============================================ */
+.install-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #1a2235, #111827);
+    border-top: 2px solid var(--accent-primary);
+    padding: 1rem 1.25rem;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+
+.install-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex: 1;
+}
+
+.install-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.install-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.install-text strong {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.install-text span {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.install-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.btn-install {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.btn-install:hover {
+    background: #2563eb;
+    transform: scale(1.03);
+}
+
+.btn-dismiss {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.btn-dismiss:hover {
+    background: rgba(239,68,68,0.15);
+    color: var(--danger);
+}
+
+/* --- الطباعة (Print Styles) --- */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #print-area, #print-area * {
+        visibility: visible;
+        color: #000 !important;
+    }
+    #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 2rem;
+    }
+    .modal-actions { display: none !important; }
+}
+
+/* ============================================
+   📱 التصميم المتجاوب للهاتف والتابلت
+   ============================================ */
+
+/* --- زر القائمة (هامبرغر) --- */
+.hamburger-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: var(--transition);
+}
+.hamburger-btn:hover {
+    background-color: rgba(255,255,255,0.08);
+    color: var(--accent-primary);
+}
+
+/* --- خلفية داكنة عند فتح القائمة --- */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 99;
+    backdrop-filter: blur(3px);
+}
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* ============================================
+   شاشات التابلت (≤ 1024px)
+   ============================================ */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 220px;
+    }
+
+    .main-content {
+        padding: 1.5rem;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pos-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .pos-cart-area {
+        height: auto;
+        max-height: 400px;
+    }
+}
+
+/* ============================================
+   شاشات الهاتف (≤ 768px)
+   ============================================ */
+@media (max-width: 768px) {
+
+    /* السماح بالتمرير العام */
+    body {
+        overflow: auto;
+    }
+
+    /* الحاوية الرئيسية: عمود واحد */
+    .app-container {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    /* --- القائمة الجانبية: منزلقة من اليمين --- */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        transform: translateX(100%);
+        width: 250px;
+        height: 100%;
+        z-index: 100;
+        transition: transform 0.35s ease;
+        border-left: 1px solid var(--border-color);
+        overflow-y: auto;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+        box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+    }
+
+    /* --- شريط علوي ثابت للموبايل --- */
+    .top-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background-color: var(--bg-main);
+        padding: 0.85rem 1rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    #page-title {
+        font-size: 1.25rem;
+        flex: 1;
+        font-weight: 700;
+    }
+
+    .user-info .date {
+        display: none;
+    }
+
+    /* --- المحتوى الرئيسي --- */
+    .main-content {
+        padding: 0 0.85rem 5rem;
+        overflow-y: visible;
+        width: 100%;
+    }
+
+    /* --- بطاقات الإحصائيات: عمودان --- */
+    .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .card {
+        padding: 1.2rem;
+        gap: 0.9rem;
+    }
+
+    .card-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.4rem;
+    }
+
+    .card-info .value {
+        font-size: 1.5rem;
+    }
+
+    .card-info h3 {
+        font-size: 0.88rem;
+    }
+
+    /* --- شبكة لوحة القيادة --- */
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* --- شبكة المنتجات في الداشبورد --- */
+    .dashboard-pos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        max-height: 260px;
+    }
+
+    /* --- المنتجات (كروت المخزون) --- */
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .product-card {
+        padding: 1.2rem;
+    }
+
+    .product-icon {
+        font-size: 2.4rem;
+    }
+
+    .product-name {
+        font-size: 1.05rem;
+    }
+
+    /* --- نقطة البيع --- */
+    .pos-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        gap: 1rem;
+    }
+
+    .pos-products-area {
+        overflow: visible;
+    }
+
+    .pos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        max-height: 320px;
+        overflow-y: auto;
+    }
+
+    .pos-cart-area {
+        height: auto;
+        max-height: none;
+    }
+
+    .cart-items {
+        max-height: 280px;
+    }
+
+    /* --- النماذج (Forms) --- */
+    .grid-form {
+        grid-template-columns: 1fr;
+    }
+
+    /* --- النافذة المنبثقة --- */
+    .modal-content {
+        width: 95%;
+        max-width: 95%;
+        margin: 1rem;
+    }
+
+    .receipt-area {
+        padding: 1.5rem;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+
+    .modal-actions .btn {
+        width: 100%;
+    }
+
+    /* --- لوحة التنبيهات --- */
+    .panel {
+        padding: 1rem;
+    }
+}
+
+/* ============================================
+   شاشات الهاتف الصغيرة جداً (≤ 420px)
+   ============================================ */
+@media (max-width: 420px) {
+    .dashboard-cards {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+    }
+
+    .card-info .value {
+        font-size: 1.1rem;
+    }
+
+    .products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-pos-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* ============================================
+   QR Code Styles
+   ============================================ */
+
+/* زر QR في بطاقة المخزون */
+.product-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.btn-qr-card {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    flex: 1;
+    padding: 0.7rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.btn-qr-card:hover {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.btn-delete-card {
+    flex: 1;
+}
+
+/* رأس نقطة البيع مع زر المسح */
+.pos-header-top {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.pos-header-top .search-box {
+    flex: 1;
+}
+
+.btn-scan-qr {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1.25rem;
+    height: 50px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.25));
+    color: var(--accent-primary);
+    border: 1px solid rgba(59,130,246,0.35);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.btn-scan-qr:hover {
+    background: var(--accent-primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+}
+
+.btn-scan-qr i {
+    font-size: 1.2rem;
+}
+
+/* تلميح جهاز المسح اليدوي */
+.hardware-scanner-hint {
+    margin-top: 0.6rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.hardware-scanner-hint i {
+    color: var(--warning);
+    font-size: 0.75rem;
+}
+
+/* نافذة ماسح QR بالكاميرا */
+.qr-scanner-content {
+    max-width: 420px;
+    text-align: center;
+}
+
+#qr-reader {
+    width: 100%;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: #000;
+}
+
+/* إخفاء عناصر html5-qrcode الزائدة */
+#qr-reader__scan_region img,
+#qr-reader__dashboard_section_swaplink,
+#qr-reader__status_span { display: none !important; }
+
+#qr-reader__dashboard { padding: 0.5rem 0 0 !important; }
+#qr-reader__dashboard select {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.4rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.qr-scan-status {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* بطاقة QR للطباعة */
+.qr-label-printable {
+    background: #fff;
+    color: #000;
+    border-radius: 0.75rem;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.qr-label-store {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
+#qr-label-canvas {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 0.75rem;
+}
+
+#qr-label-canvas img,
+#qr-label-canvas canvas {
+    display: block;
+    border-radius: 0.25rem;
+}
+
+.qr-label-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 0.3rem;
+}
+
+.qr-label-price {
+    font-size: 1rem;
+    color: #444;
+}
+
+@media (max-width: 600px) {
+    .pos-header-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .btn-scan-qr {
+        width: 100%;
+        justify-content: center;
+    }
+}
