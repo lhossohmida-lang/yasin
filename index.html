@@ -106,6 +106,7 @@
                 <a href="#" class="nav-item" data-target="section-sales"><i class="fa-solid fa-cart-shopping"></i> نقطة البيع</a>
                 <a href="#" class="nav-item" data-target="section-history"><i class="fa-solid fa-clock-rotate-left"></i> سجل المبيعات</a>
                 <a href="#" class="nav-item" data-target="section-expenses"><i class="fa-solid fa-file-invoice-dollar"></i> الخسائر والمصاريف</a>
+                <a href="#" class="nav-item" data-target="section-accounts"><i class="fa-solid fa-users-gear"></i> إدارة الحسابات</a>
             </nav>
             <div class="sidebar-bottom">
                 <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج</button>
@@ -361,6 +362,49 @@
                         <span id="total-advances-display" style="color:#3b82f6; font-size:1.3rem; font-weight:700;">0.00 د.ج</span>
                     </div>
                 </div>
+            <!-- قسم إدارة الحسابات -->
+            <div id="section-accounts" class="page-section" style="display:none">
+                <div class="dashboard-grid" style="grid-template-columns:1fr; margin-bottom:1.5rem;">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-user-plus"></i> إضافة حساب جديد</h2>
+                        </div>
+                        <form id="add-account-form" class="grid-form" onsubmit="addAccount(event)">
+                            <div class="form-group">
+                                <label>الاسم الكامل</label>
+                                <input type="text" id="acc-name" required placeholder="مثال: أحمد محمد">
+                            </div>
+                            <div class="form-group">
+                                <label>اسم المستخدم</label>
+                                <input type="text" id="acc-username" required placeholder="مثال: ahmed123" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label>كلمة المرور</label>
+                                <input type="password" id="acc-password" required placeholder="كلمة المرور" autocomplete="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label>الدور</label>
+                                <select id="acc-role" required>
+                                    <option value="worker">عامل</option>
+                                    <option value="admin">مدير</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="display:flex;align-items:flex-end;">
+                                <button type="submit" class="btn btn-primary" style="height:45px;"><i class="fa-solid fa-plus"></i> إضافة الحساب</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-users"></i> قائمة الحسابات</h2>
+                    </div>
+                    <div id="accounts-list" class="history-list">
+                        <!-- injected by JS -->
+                    </div>
+                </div>
+            </div>
+
             </div>
         </main>
     </div>

@@ -17,6 +17,8 @@ let salesHistory = [];
 let expenses = [];
 let workerAdvances = [];
 let workerSalaries = [];
+let accounts = [];
+let accountsListener = null;
 let storeData = { totalIncome: 0, netProfit: 0, totalLosses: 0 };
 
 // ================== مستمعو Firebase ==================
@@ -552,12 +554,36 @@ document.getElementById('current-date').innerText = new Date().toLocaleDateStrin
 // ================== الأدوار (مدير / عامل) ==================
 let currentRole = null;
 
+function startAccountsListener() {
+    if (accountsListener) return;
+    accountsListener = db.collection("accounts").onSnapshot(snapshot => {
+        accounts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAccounts();
+    });
+}
+
+async function seedDefaultAccounts() {
+    try {
+        const snapshot = await db.collection("accounts").limit(1).get();
+        if (snapshot.empty) {
+            const batch = db.batch();
+            batch.set(db.collection("accounts").doc(), { username: "admin", password: "yasin4321", role: "admin", name: "المدير" });
+            batch.set(db.collection("accounts").doc(), { username: "anis", password: "anis", role: "worker", name: "أنيس" });
+            await batch.commit();
+        }
+    } catch (err) {
+        console.error("Error seeding accounts:", err);
+    }
+}
+
 function applyRole(role) {
     currentRole = role;
     const isWorker = role === 'worker';
     document.querySelectorAll('.nav-item').forEach(el => {
-        el.style.display = (isWorker && el.getAttribute('data-target') === 'section-inventory') ? 'none' : 'flex';
+        const t = el.getAttribute('data-target');
+        el.style.display = (isWorker && (t === 'section-inventory' || t === 'section-accounts')) ? 'none' : 'flex';
     });
+    if (!isWorker) startAccountsListener();
     document.querySelectorAll('.card-capital, .card-profit, .card-loss').forEach(el => {
         el.style.display = isWorker ? 'none' : '';
     });
@@ -578,43 +604,43 @@ function initLogin() {
     const adminForm = document.getElementById('admin-login-form');
     const workerForm = document.getElementById('worker-login-form');
 
-    if (adminForm) {
-        adminForm.addEventListener('submit', e => {
+    async function handleLogin(form, role, screenId, usernameId, passwordId, errorId) {
+        form.addEventListener('submit', async e => {
             e.preventDefault();
-            const user = document.getElementById('admin-username').value.trim();
-            const pass = document.getElementById('admin-password').value;
-            const error = document.getElementById('admin-login-error');
+            const user = document.getElementById(usernameId).value.trim();
+            const pass = document.getElementById(passwordId).value;
+            const error = document.getElementById(errorId);
+            const btn = form.querySelector('button[type="submit"]');
 
-            if (user === 'admin' && pass === 'yasin4321') {
-                document.getElementById('admin-login-screen').style.display = 'none';
-                appContainer.style.display = 'flex';
-                applyRole('admin');
-                sessionStorage.setItem('userRole', 'admin');
-            } else {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+            error.style.display = 'none';
+
+            try {
+                const snapshot = await db.collection("accounts").where("username", "==", user).get();
+                const match = snapshot.docs.find(d => d.data().role === role && d.data().password === pass);
+                if (match) {
+                    document.getElementById(screenId).style.display = 'none';
+                    appContainer.style.display = 'flex';
+                    applyRole(role);
+                    sessionStorage.setItem('userRole', role);
+                    sessionStorage.setItem('username', user);
+                } else {
+                    error.style.display = 'block';
+                    error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+                }
+            } catch (err) {
                 error.style.display = 'block';
-                error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+                error.textContent = 'خطأ في الاتصال، حاول مجددًا';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'تسجيل الدخول <i class="fa-solid fa-arrow-left"></i>';
             }
         });
     }
 
-    if (workerForm) {
-        workerForm.addEventListener('submit', e => {
-            e.preventDefault();
-            const user = document.getElementById('worker-username').value.trim();
-            const pass = document.getElementById('worker-password').value;
-            const error = document.getElementById('worker-login-error');
-
-            if (user === 'anis' && pass === 'anis') {
-                document.getElementById('worker-login-screen').style.display = 'none';
-                appContainer.style.display = 'flex';
-                applyRole('worker');
-                sessionStorage.setItem('userRole', 'worker');
-            } else {
-                error.style.display = 'block';
-                error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
-            }
-        });
-    }
+    if (adminForm) handleLogin(adminForm, 'admin', 'admin-login-screen', 'admin-username', 'admin-password', 'admin-login-error');
+    if (workerForm) handleLogin(workerForm, 'worker', 'worker-login-screen', 'worker-username', 'worker-password', 'worker-login-error');
 
     const saved = sessionStorage.getItem('userRole');
     if (saved) {
@@ -656,6 +682,59 @@ function logout() {
 }
 
 initLogin();
+seedDefaultAccounts();
+
+// ================== إدارة الحسابات ==================
+function renderAccounts() {
+    const list = document.getElementById('accounts-list');
+    if (!list) return;
+    const currentUser = sessionStorage.getItem('username');
+    list.innerHTML = '';
+    if (accounts.length === 0) {
+        list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:1rem;">لا توجد حسابات</p>';
+        return;
+    }
+    accounts.forEach(acc => {
+        const roleLabel = acc.role === 'admin'
+            ? '<span class="badge badge-success">مدير</span>'
+            : '<span class="badge badge-warning">عامل</span>';
+        const isSelf = acc.username === currentUser;
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                    <strong>${acc.name || acc.username}</strong>
+                    <span style="color:var(--text-secondary);">@${acc.username}</span>
+                    ${roleLabel}
+                    ${isSelf ? '<span style="color:var(--text-secondary);font-size:0.8rem;">(أنت)</span>' : ''}
+                </div>
+                ${isSelf ? '' : `<button class="btn btn-danger" onclick="deleteAccount('${acc.id}')" style="padding:0.4rem 0.9rem;font-size:0.85rem;"><i class="fa-solid fa-trash"></i> حذف</button>`}
+            </div>`;
+        list.appendChild(item);
+    });
+}
+
+async function addAccount(e) {
+    e.preventDefault();
+    const name = document.getElementById('acc-name').value.trim();
+    const username = document.getElementById('acc-username').value.trim();
+    const password = document.getElementById('acc-password').value;
+    const role = document.getElementById('acc-role').value;
+
+    const existing = await db.collection("accounts").where("username", "==", username).get();
+    if (!existing.empty) {
+        alert('اسم المستخدم مستخدم بالفعل!');
+        return;
+    }
+    await db.collection("accounts").add({ name, username, password, role });
+    document.getElementById('add-account-form').reset();
+}
+
+async function deleteAccount(id) {
+    if (!confirm('هل تريد حذف هذا الحساب؟')) return;
+    await db.collection("accounts").doc(id).delete();
+}
 
 // ================== القائمة الجانبية (موبايل) ==================
 const hamburgerBtn = document.getElementById('hamburger-btn');
