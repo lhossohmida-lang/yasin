@@ -5,7 +5,8 @@ const firebaseConfig = {
     projectId: "yasin-b993b",
     storageBucket: "yasin-b993b.firebasestorage.app",
     messagingSenderId: "1094100813279",
-    appId: "1:1094100813279:web:bb4cf51c0ecc313a58f06a"
+    appId: "1:1094100813279:web:bb4cf51c0ecc313a58f06a",
+    measurementId: "G-NG5F1J11DY"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
