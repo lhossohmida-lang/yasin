@@ -102,13 +102,28 @@ function renderInventoryCards() {
                     <span class="detail-value text-blue">${item.sellPrice} د.ج</span>
                 </div>
             </div>
+            <div class="qr-code-section">
+                <div class="qr-canvas" id="qr-inv-${item.id}"></div>
+            </div>
             <div class="product-actions">
+                <button class="btn-print-qr" onclick="printProductQR('${item.id}')">
+                    <i class="fa-solid fa-qrcode"></i> طباعة QR
+                </button>
                 <button class="btn-delete-card" onclick="deleteProduct('${item.id}')">
                     <i class="fa-solid fa-trash"></i> حذف
                 </button>
             </div>
         `;
         container.appendChild(card);
+
+        new QRCode(document.getElementById('qr-inv-' + item.id), {
+            text: 'YASIN:' + item.id,
+            width: 110,
+            height: 110,
+            colorDark: '#1E3A8A',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
     });
 }
 
@@ -502,6 +517,86 @@ if (workerAdvanceForm) workerAdvanceForm.addEventListener('submit', async functi
         alert("حدث خطأ أثناء إضافة السلفية!");
     }
 });
+
+// ================== QR Code ==================
+
+function printProductQR(productId) {
+    const product = inventory.find(p => p.id === productId);
+    if (!product) return;
+    document.getElementById('qr-print-name').innerText = product.name;
+    document.getElementById('qr-print-price').innerText = product.sellPrice.toLocaleString('ar-DZ') + ' د.ج';
+    const canvas = document.getElementById('qr-print-canvas');
+    canvas.innerHTML = '';
+    new QRCode(canvas, {
+        text: 'YASIN:' + productId,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+    });
+    document.getElementById('qr-print-modal').classList.add('show');
+}
+
+// ماسح USB/بلوتوث (يعمل ككيبورد)
+const scannerInput = document.getElementById('pos-scanner-input');
+if (scannerInput) {
+    scannerInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const code = this.value.trim();
+            this.value = '';
+            if (code.startsWith('YASIN:')) {
+                const productId = code.replace('YASIN:', '');
+                const product = inventory.find(p => p.id === productId);
+                if (product) {
+                    addToCart(productId);
+                    this.placeholder = 'تمت إضافة: ' + product.name;
+                    setTimeout(() => { this.placeholder = 'امسح QR Code هنا أو اكتب رمز المنتج...'; }, 2000);
+                } else {
+                    this.placeholder = 'المنتج غير موجود!';
+                    setTimeout(() => { this.placeholder = 'امسح QR Code هنا أو اكتب رمز المنتج...'; }, 2000);
+                }
+            }
+        }
+    });
+}
+
+// مسح بالكاميرا
+let html5QrScanner = null;
+
+function openCameraScan() {
+    document.getElementById('qr-camera-modal').classList.add('show');
+    html5QrScanner = new Html5Qrcode('qr-camera-reader');
+    html5QrScanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            closeCameraScan();
+            if (decodedText.startsWith('YASIN:')) {
+                const productId = decodedText.replace('YASIN:', '');
+                const product = inventory.find(p => p.id === productId);
+                if (product) {
+                    addToCart(productId);
+                } else {
+                    alert('المنتج غير موجود في المخزون!');
+                }
+            }
+        },
+        () => {}
+    ).catch(err => {
+        alert('لا يمكن الوصول إلى الكاميرا.\n' + err);
+        closeCameraScan();
+    });
+}
+
+function closeCameraScan() {
+    if (html5QrScanner) {
+        html5QrScanner.stop().catch(() => {}).finally(() => { html5QrScanner = null; });
+    }
+    document.getElementById('qr-camera-modal').classList.remove('show');
+    document.getElementById('qr-camera-reader').innerHTML = '';
+}
 
 // ================== الشعار ==================
 function updateLogoUI(logoStr) {
