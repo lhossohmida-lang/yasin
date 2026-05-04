@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // بيانات المتجر - قراءة وكتابة مفتوحة
+    match /store/{document} {
+      allow read, write: if true;
+    }
+
+    // المخزون
+    match /inventory/{document} {
+      allow read, write: if true;
+    }
+
+    // سجل المبيعات
+    match /sales_history/{document} {
+      allow read, write: if true;
+    }
+
+    // المصاريف
+    match /expenses/{document} {
+      allow read, write: if true;
+    }
+
+    // سلفيات العمال
+    match /worker_advances/{document} {
+      allow read, write: if true;
+    }
+
+    // رواتب العمال
+    match /worker_salaries/{document} {
+      allow read, write: if true;
+    }
+  }
+}
