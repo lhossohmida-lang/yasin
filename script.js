@@ -17,7 +17,8 @@ let salesHistory = [];
 let expenses = [];
 let workerAdvances = [];
 let workerSalaries = [];
-let usersList = [];
+let accounts = [];
+let accountsListener = null;
 let storeData = { totalIncome: 0, netProfit: 0, totalLosses: 0 };
 
 // ================== مستمعو Firebase ==================
@@ -56,11 +57,6 @@ db.collection("worker_salaries").orderBy("timestamp", "desc").onSnapshot(snapsho
     updateUI();
 });
 
-db.collection("users").onSnapshot(snapshot => {
-    usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    updateUI();
-});
-
 // ================== تحديث الواجهة ==================
 function updateUI() {
     const fmt = n => n.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
@@ -78,7 +74,6 @@ function updateUI() {
     renderExpenses();
     renderWorkerSalaries();
     renderWorkerAdvances();
-    renderUsersList();
 }
 
 // ================== المخزون ==================
@@ -94,9 +89,6 @@ function renderInventoryCards() {
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-            <div style="position: absolute; top: 15px; left: 15px; z-index: 10;">
-                <input type="checkbox" class="qr-select-checkbox" value="${item.id}" style="width: 20px; height: 20px; cursor: pointer;" title="تحديد للطباعة">
-            </div>
             <div class="product-icon"><i class="fa-solid fa-shirt"></i></div>
             <h3 class="product-name">${item.name}</h3>
             <div class="product-details">
@@ -114,9 +106,6 @@ function renderInventoryCards() {
                 </div>
             </div>
             <div class="product-actions">
-                <button class="btn-qr-card" onclick="showProductQR('${item.id}')">
-                    <i class="fa-solid fa-qrcode"></i> رمز QR
-                </button>
                 <button class="btn-delete-card" onclick="deleteProduct('${item.id}')">
                     <i class="fa-solid fa-trash"></i> حذف
                 </button>
@@ -562,70 +551,39 @@ document.getElementById('current-date').innerText = new Date().toLocaleDateStrin
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 });
 
-// ================== الحسابات ==================
-function renderUsersList() {
-    const list = document.getElementById('users-list');
-    if (!list) return;
-    list.innerHTML = '';
-    if (usersList.length === 0) {
-        list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:1.5rem;">لا توجد حسابات إضافية مسجلة</p>';
-        return;
-    }
-    usersList.forEach(u => {
-        const div = document.createElement('div');
-        div.className = 'alert-item';
-        div.style.cssText = 'justify-content:space-between;align-items:center;';
-        div.innerHTML = `
-            <div style="display:flex;gap:0.75rem;align-items:center;">
-                <i class="fa-solid ${u.role === 'admin' ? 'fa-user-shield' : 'fa-user'}" style="color:${u.role === 'admin' ? 'var(--accent-primary)' : 'var(--warning)'};font-size:1.3rem;"></i>
-                <div>
-                    <h4 style="margin-bottom:0.15rem;">${u.username}</h4>
-                    <span style="color:var(--text-secondary);font-size:0.8rem;">${u.role === 'admin' ? 'مدير' : 'عامل'}</span>
-                </div>
-            </div>
-            <button class="btn btn-danger" style="width:auto;padding:0.5rem 1rem;" onclick="deleteUser('${u.id}')"><i class="fa-solid fa-trash"></i> حذف</button>
-        `;
-        list.appendChild(div);
+// ================== الأدوار (مدير / عامل) ==================
+let currentRole = null;
+
+function startAccountsListener() {
+    if (accountsListener) return;
+    accountsListener = db.collection("accounts").onSnapshot(snapshot => {
+        accounts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAccounts();
     });
 }
 
-const addUserForm = document.getElementById('add-user-form');
-if (addUserForm) addUserForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const role = document.getElementById('user-role').value;
-    const username = document.getElementById('user-name').value.trim();
-    const password = document.getElementById('user-pass').value;
-    
-    if (usersList.some(u => u.username === username) || username === 'admin' || username === 'anis') {
-        alert('اسم المستخدم موجود مسبقاً!');
-        return;
-    }
-
+async function seedDefaultAccounts() {
     try {
-        await db.collection("users").add({ role, username, password });
-        this.reset();
-        alert('تم إنشاء الحساب بنجاح.');
+        const snapshot = await db.collection("accounts").limit(1).get();
+        if (snapshot.empty) {
+            const batch = db.batch();
+            batch.set(db.collection("accounts").doc(), { username: "admin", password: "yasin4321", role: "admin", name: "المدير" });
+            batch.set(db.collection("accounts").doc(), { username: "anis", password: "anis", role: "worker", name: "أنيس" });
+            await batch.commit();
+        }
     } catch (err) {
-        alert('حدث خطأ أثناء الإنشاء.');
-    }
-});
-
-async function deleteUser(id) {
-    if (confirm('هل أنت متأكد من حذف هذا الحساب؟')) {
-        await db.collection("users").doc(id).delete();
+        console.error("Error seeding accounts:", err);
     }
 }
-
-// ================== الأدوار (مدير / عامل) ==================
-let currentRole = null;
 
 function applyRole(role) {
     currentRole = role;
     const isWorker = role === 'worker';
     document.querySelectorAll('.nav-item').forEach(el => {
-        const target = el.getAttribute('data-target');
-        el.style.display = (isWorker && (target === 'section-inventory' || target === 'section-users')) ? 'none' : 'flex';
+        const t = el.getAttribute('data-target');
+        el.style.display = (isWorker && (t === 'section-inventory' || t === 'section-accounts')) ? 'none' : 'flex';
     });
+    if (!isWorker) startAccountsListener();
     document.querySelectorAll('.card-capital, .card-profit, .card-loss').forEach(el => {
         el.style.display = isWorker ? 'none' : '';
     });
@@ -646,45 +604,43 @@ function initLogin() {
     const adminForm = document.getElementById('admin-login-form');
     const workerForm = document.getElementById('worker-login-form');
 
-    if (adminForm) {
-        adminForm.addEventListener('submit', e => {
+    async function handleLogin(form, role, screenId, usernameId, passwordId, errorId) {
+        form.addEventListener('submit', async e => {
             e.preventDefault();
-            const user = document.getElementById('admin-username').value.trim();
-            const pass = document.getElementById('admin-password').value;
-            const error = document.getElementById('admin-login-error');
+            const user = document.getElementById(usernameId).value.trim();
+            const pass = document.getElementById(passwordId).value;
+            const error = document.getElementById(errorId);
+            const btn = form.querySelector('button[type="submit"]');
 
-            const validAdmin = usersList.find(u => u.role === 'admin' && u.username === user && u.password === pass);
-            if ((user === 'admin' && pass === 'yasin4321') || validAdmin) {
-                document.getElementById('admin-login-screen').style.display = 'none';
-                appContainer.style.display = 'flex';
-                applyRole('admin');
-                sessionStorage.setItem('userRole', 'admin');
-            } else {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+            error.style.display = 'none';
+
+            try {
+                const snapshot = await db.collection("accounts").where("username", "==", user).get();
+                const match = snapshot.docs.find(d => d.data().role === role && d.data().password === pass);
+                if (match) {
+                    document.getElementById(screenId).style.display = 'none';
+                    appContainer.style.display = 'flex';
+                    applyRole(role);
+                    sessionStorage.setItem('userRole', role);
+                    sessionStorage.setItem('username', user);
+                } else {
+                    error.style.display = 'block';
+                    error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+                }
+            } catch (err) {
                 error.style.display = 'block';
-                error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+                error.textContent = 'خطأ في الاتصال، حاول مجددًا';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'تسجيل الدخول <i class="fa-solid fa-arrow-left"></i>';
             }
         });
     }
 
-    if (workerForm) {
-        workerForm.addEventListener('submit', e => {
-            e.preventDefault();
-            const user = document.getElementById('worker-username').value.trim();
-            const pass = document.getElementById('worker-password').value;
-            const error = document.getElementById('worker-login-error');
-
-            const validWorker = usersList.find(u => u.role === 'worker' && u.username === user && u.password === pass);
-            if ((user === 'anis' && pass === 'anis') || validWorker) {
-                document.getElementById('worker-login-screen').style.display = 'none';
-                appContainer.style.display = 'flex';
-                applyRole('worker');
-                sessionStorage.setItem('userRole', 'worker');
-            } else {
-                error.style.display = 'block';
-                error.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
-            }
-        });
-    }
+    if (adminForm) handleLogin(adminForm, 'admin', 'admin-login-screen', 'admin-username', 'admin-password', 'admin-login-error');
+    if (workerForm) handleLogin(workerForm, 'worker', 'worker-login-screen', 'worker-username', 'worker-password', 'worker-login-error');
 
     const saved = sessionStorage.getItem('userRole');
     if (saved) {
@@ -726,6 +682,59 @@ function logout() {
 }
 
 initLogin();
+seedDefaultAccounts();
+
+// ================== إدارة الحسابات ==================
+function renderAccounts() {
+    const list = document.getElementById('accounts-list');
+    if (!list) return;
+    const currentUser = sessionStorage.getItem('username');
+    list.innerHTML = '';
+    if (accounts.length === 0) {
+        list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:1rem;">لا توجد حسابات</p>';
+        return;
+    }
+    accounts.forEach(acc => {
+        const roleLabel = acc.role === 'admin'
+            ? '<span class="badge badge-success">مدير</span>'
+            : '<span class="badge badge-warning">عامل</span>';
+        const isSelf = acc.username === currentUser;
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                    <strong>${acc.name || acc.username}</strong>
+                    <span style="color:var(--text-secondary);">@${acc.username}</span>
+                    ${roleLabel}
+                    ${isSelf ? '<span style="color:var(--text-secondary);font-size:0.8rem;">(أنت)</span>' : ''}
+                </div>
+                ${isSelf ? '' : `<button class="btn btn-danger" onclick="deleteAccount('${acc.id}')" style="padding:0.4rem 0.9rem;font-size:0.85rem;"><i class="fa-solid fa-trash"></i> حذف</button>`}
+            </div>`;
+        list.appendChild(item);
+    });
+}
+
+async function addAccount(e) {
+    e.preventDefault();
+    const name = document.getElementById('acc-name').value.trim();
+    const username = document.getElementById('acc-username').value.trim();
+    const password = document.getElementById('acc-password').value;
+    const role = document.getElementById('acc-role').value;
+
+    const existing = await db.collection("accounts").where("username", "==", username).get();
+    if (!existing.empty) {
+        alert('اسم المستخدم مستخدم بالفعل!');
+        return;
+    }
+    await db.collection("accounts").add({ name, username, password, role });
+    document.getElementById('add-account-form').reset();
+}
+
+async function deleteAccount(id) {
+    if (!confirm('هل تريد حذف هذا الحساب؟')) return;
+    await db.collection("accounts").doc(id).delete();
+}
 
 // ================== القائمة الجانبية (موبايل) ==================
 const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -777,224 +786,4 @@ if (btnDismiss) btnDismiss.addEventListener('click', () => {
 window.addEventListener('appinstalled', () => {
     installBanner.style.display = 'none';
     deferredInstallPrompt = null;
-});
-
-// ================== QR Code - التوليد ==================
-function showProductQR(productId) {
-    const product = inventory.find(p => p.id === productId);
-    if (!product) return;
-
-    document.getElementById('qr-label-name').textContent = product.name;
-    document.getElementById('qr-label-price').textContent = product.sellPrice.toLocaleString('ar-DZ') + ' د.ج';
-
-    // افتح النافذة أولاً ثم ولّد الرمز
-    document.getElementById('qr-label-modal').classList.add('show');
-
-    const container = document.getElementById('qr-label-canvas');
-    container.innerHTML = '';
-    new QRCode(container, {
-        text: productId,
-        width: 180,
-        height: 180,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H
-    });
-}
-
-function closeQRLabel() {
-    document.getElementById('qr-label-modal').classList.remove('show');
-}
-
-function printQRLabel() {
-    const container = document.getElementById('qr-label-canvas');
-    const img = container.querySelector('img');
-    const imgSrc = img ? img.src : '';
-    const name = document.getElementById('qr-label-name').textContent;
-    const price = document.getElementById('qr-label-price').textContent;
-
-    const win = window.open('', '_blank', 'width=320,height=400');
-    win.document.write(`<!DOCTYPE html><html dir="rtl"><head>
-        <meta charset="UTF-8"><title>بطاقة منتج</title>
-        <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; color: #000; }
-            .store { font-size: 13px; color: #555; margin-bottom: 8px; }
-            img { display: block; margin: 0 auto 10px; width: 160px; height: 160px; }
-            .name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-            .price { font-size: 15px; color: #333; }
-        </style></head><body>
-        <div class="store">أناقة للرجال</div>
-        <img src="${imgSrc}" alt="QR">
-        <div class="name">${name}</div>
-        <div class="price">${price}</div>
-    </body></html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 400);
-}
-
-let isAllSelected = false;
-function toggleSelectAllQRs() {
-    const checkboxes = document.querySelectorAll('.qr-select-checkbox');
-    isAllSelected = !isAllSelected;
-    checkboxes.forEach(cb => cb.checked = isAllSelected);
-    
-    const btn = document.getElementById('btn-select-all');
-    if (btn) {
-        if (isAllSelected) {
-            btn.innerHTML = '<i class="fa-solid fa-square-minus"></i> إلغاء التحديد';
-            btn.style.borderColor = 'var(--accent-primary)';
-            btn.style.color = 'var(--accent-primary)';
-        } else {
-            btn.innerHTML = '<i class="fa-solid fa-check-double"></i> تحديد الكل';
-            btn.style.borderColor = 'var(--border-color)';
-            btn.style.color = 'var(--text-primary)';
-        }
-    }
-}
-
-function printSelectedQRs() {
-    const checkboxes = document.querySelectorAll('.qr-select-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('الرجاء تحديد منتج واحد على الأقل للطباعة.');
-        return;
-    }
-
-    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
-    const selectedProducts = inventory.filter(p => selectedIds.includes(p.id));
-
-    const win = window.open('', '_blank', 'width=800,height=600');
-    let htmlContent = `<!DOCTYPE html><html dir="rtl"><head>
-        <meta charset="UTF-8"><title>طباعة بطاقات QR</title>
-        <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"><\/script>
-        <style>
-            body { font-family: Arial, sans-serif; background: #fff; color: #000; margin: 0; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-            .qr-card { text-align: center; border: 1px dashed #ccc; padding: 15px; width: 180px; page-break-inside: avoid; }
-            .store { font-size: 13px; color: #555; margin-bottom: 8px; }
-            .qr-code { display: flex; justify-content: center; margin-bottom: 10px; }
-            .qr-code img { display: block; width: 140px; height: 140px; }
-            .name { font-size: 16px; font-weight: bold; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .price { font-size: 15px; color: #333; }
-            @media print {
-                body { padding: 0; gap: 10px; justify-content: flex-start; }
-                .qr-card { border: none; padding: 10px; width: 30%; box-sizing: border-box; margin-bottom: 20px; }
-            }
-        </style></head><body>`;
-
-    selectedProducts.forEach((product, index) => {
-        htmlContent += `
-        <div class="qr-card">
-            <div class="store">أناقة للرجال</div>
-            <div id="qr-${index}" class="qr-code"></div>
-            <div class="name">${product.name}</div>
-            <div class="price">${product.sellPrice.toLocaleString('ar-DZ')} د.ج</div>
-        </div>`;
-    });
-
-    htmlContent += `
-    <script>
-        const products = ${JSON.stringify(selectedProducts)};
-        products.forEach((p, i) => {
-            new QRCode(document.getElementById('qr-' + i), {
-                text: p.id,
-                width: 140,
-                height: 140,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        });
-        setTimeout(() => { window.print(); window.close(); }, 1000);
-    <\/script>
-    </body></html>`;
-
-    win.document.write(htmlContent);
-    win.document.close();
-}
-
-// ================== QR Code - المسح بالكاميرا ==================
-let html5QrScanner = null;
-
-function openQRScanner() {
-    const modal = document.getElementById('qr-scanner-modal');
-    modal.classList.add('show');
-    document.getElementById('qr-scan-status').textContent = 'وجّه الكاميرا نحو رمز QR الموجود على المنتج';
-    document.getElementById('qr-scan-status').style.color = '';
-
-    html5QrScanner = new Html5Qrcode('qr-reader');
-    html5QrScanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        decodedText => {
-            handleQRScan(decodedText);
-            closeQRScanner();
-        },
-        () => {}
-    ).catch(() => {
-        document.getElementById('qr-scan-status').textContent = 'تعذّر الوصول إلى الكاميرا — استخدم جهاز المسح اليدوي';
-        document.getElementById('qr-scan-status').style.color = 'var(--danger)';
-    });
-}
-
-function closeQRScanner() {
-    if (html5QrScanner) {
-        html5QrScanner.stop().catch(() => {}).finally(() => {
-            html5QrScanner.clear();
-            html5QrScanner = null;
-        });
-    }
-    document.getElementById('qr-scanner-modal').classList.remove('show');
-}
-
-function handleQRScan(productId) {
-    const product = inventory.find(p => p.id === productId);
-    if (!product) {
-        alert('رمز QR غير معروف — تأكد أن الرمز صادر من هذا التطبيق');
-        return;
-    }
-    if (product.qty <= 0) {
-        alert(`"${product.name}" نفد من المخزون!`);
-        return;
-    }
-    // الانتقال لقسم البيع وإضافة المنتج للسلة
-    const salesNav = document.querySelector('[data-target="section-sales"]');
-    if (salesNav && !document.getElementById('section-sales').style.display.includes('block')) {
-        salesNav.click();
-    }
-    addToCart(productId);
-}
-
-// ================== دعم جهاز المسح اليدوي (USB Scanner) ==================
-// أجهزة المسح اليدوية ترسل أحرف سريعة جداً ثم Enter — نكشفها ونعالجها
-let _scanBuffer = '';
-let _scanTimer = null;
-
-document.addEventListener('keydown', e => {
-    // فقط عند وجود قسم البيع أو المخزون نشطاً
-    const salesActive = document.getElementById('section-sales').style.display !== 'none';
-    const invActive = document.getElementById('section-inventory').style.display !== 'none';
-    if (!salesActive && !invActive) return;
-
-    // تجاهل إذا كان التركيز على حقل إدخال عادي (ما عدا بحث المنتج)
-    const tag = document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA') {
-        if (document.activeElement.id !== 'pos-search') return;
-    }
-
-    if (e.key === 'Enter') {
-        if (_scanBuffer.length > 8) {
-            const scanned = _scanBuffer.trim();
-            if (salesActive) handleQRScan(scanned);
-        }
-        _scanBuffer = '';
-        clearTimeout(_scanTimer);
-        return;
-    }
-
-    if (e.key.length === 1) {
-        _scanBuffer += e.key;
-        clearTimeout(_scanTimer);
-        // إذا توقف الإدخال أكثر من 150ms تُعدّ غير آلية ونمسح الـ buffer
-        _scanTimer = setTimeout(() => { _scanBuffer = ''; }, 150);
-    }
 });
