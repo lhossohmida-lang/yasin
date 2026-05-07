@@ -4,6 +4,7 @@
   "description": "Desktop Application for Men's Clothing Store Management",
   "main": "main.js",
   "scripts": {
+    "dev": "electron .",
     "start": "electron .",
     "build": "electron-builder --win"
   },
