@@ -8,6 +8,7 @@ const TEXT = {
   bigContext: ar('2YXZhNiu2LUg2KjZitin2YbYp9iqINin2YTZhdiq2KzYsSDZg9io2YrYsSDYrNiv2YvYpy4g2KPYsdiz2YQg2YXZhNiu2LXZi9inINij2LXYutixLg=='),
   invalidKey: '\u{645}\u{641}\u{62a}\u{627}\u{62d} DeepSeek \u{63a}\u{64a}\u{631} \u{635}\u{62d}\u{64a}\u{62d} \u{623}\u{648} \u{63a}\u{64a}\u{631} \u{645}\u{641}\u{639}\u{644}. \u{631}\u{627}\u{62c}\u{639} DEEPSEEK_API_KEY.',
   quota: ar('2KrZhSDYqtis2KfZiNiyINit2LXYqSBHZW1pbmkgQVBJINmF2KTZgtiq2YvYpy4g2K3Yp9mI2YQg2YTYp9it2YLZi9inINij2Ygg2LHYp9is2Lkg2KXYudiv2KfYr9in2Kog2KfZhNmB2YjYqtix2Kkg2YjYp9mE2K3YtdipLg=='),
+  balance: '\u{631}\u{635}\u{64a}\u{62f} DeepSeek \u{63a}\u{64a}\u{631} \u{643}\u{627}\u{641}\u{64d}. \u{623}\u{636}\u{641} \u{631}\u{635}\u{64a}\u{62f}\u{64b}\u{627} \u{625}\u{644}\u{649} \u{62d}\u{633}\u{627}\u{628} DeepSeek \u{62b}\u{645} \u{62d}\u{627}\u{648}\u{644} \u{645}\u{62c}\u{62f}\u{62f}\u{64b}\u{627}.',
   providerError: '\u{62a}\u{639}\u{630}\u{631} \u{627}\u{644}\u{627}\u{62a}\u{635}\u{627}\u{644} \u{628}\u{640} DeepSeek \u{627}\u{644}\u{622}\u{646}. \u{62d}\u{627}\u{648}\u{644} \u{645}\u{62c}\u{62f}\u{62f}\u{64b}\u{627} \u{628}\u{639}\u{62f} \u{642}\u{644}\u{64a}\u{644}.',
   noReply: ar('2YTZhSDZitix2KzYuSBHZW1pbmkg2LHYr9mL2Kcg2YjYp9i22K3Zi9inLiDYrdin2YjZhCDYpdi52KfYr9ipINi12YrYp9i62Kkg2KfZhNiz2KTYp9mELg==')
 };
@@ -119,6 +120,10 @@ function extractProviderReply(payload) {
 function classifyProviderError(status, payload) {
   const message = `${payload && payload.error && payload.error.message || ''}`.toLowerCase();
   const code = `${payload && payload.error && (payload.error.status || payload.error.code) || ''}`.toLowerCase();
+
+  if (status === 402 || message.includes('insufficient balance') || message.includes('balance')) {
+    return { status: 402, error: TEXT.balance };
+  }
 
   if (status === 429 || message.includes('quota') || message.includes('rate')) {
     return { status: 429, error: TEXT.quota };
