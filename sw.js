@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anaka-store-v5';
+const CACHE_NAME = 'anaka-store-v6';
 const urlsToCache = [
   './',
   './index.html',
@@ -26,6 +26,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (new URL(event.request.url).pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
