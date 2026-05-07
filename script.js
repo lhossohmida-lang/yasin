@@ -612,7 +612,7 @@ function initLogin() {
         form.addEventListener('submit', async e => {
             e.preventDefault();
             const user = document.getElementById(usernameId).value.trim();
-            const pass = document.getElementById(passwordId).value;
+            const pass = document.getElementById(passwordId).value.trim();
             const error = document.getElementById(errorId);
             const btn = form.querySelector('button[type="submit"]');
 
