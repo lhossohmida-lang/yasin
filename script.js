@@ -782,10 +782,11 @@ const AI_SUGGESTIONS = [
 ];
 
 const AI_API_BASE = (() => {
-    const isHttpFrontend = ['3000', '5173'].includes(window.location.port);
-    return window.location.protocol.startsWith('http') && isHttpFrontend
-        ? '/api/ai'
-        : 'http://localhost:5000/api/ai';
+    const isHttp = window.location.protocol.startsWith('http');
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const isDevFrontend = isLocalhost && ['3000', '5173'].includes(window.location.port);
+    if (isHttp && (!isLocalhost || isDevFrontend)) return '/api/ai';
+    return 'http://localhost:5000/api/ai';
 })();
 
 let aiChatHistory = [];

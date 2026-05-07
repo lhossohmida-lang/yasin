@@ -1,10 +1,10 @@
 const AI_API_BASE_URL = (() => {
   if (typeof window === 'undefined') return 'http://localhost:5000/api/ai';
 
-  const isDevFrontend = ['3000', '5173'].includes(window.location.port);
-  if (window.location.protocol.startsWith('http') && isDevFrontend) {
-    return '/api/ai';
-  }
+  const isHttp = window.location.protocol.startsWith('http');
+  const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const isDevFrontend = isLocalhost && ['3000', '5173'].includes(window.location.port);
+  if (isHttp && (!isLocalhost || isDevFrontend)) return '/api/ai';
 
   return 'http://localhost:5000/api/ai';
 })();
