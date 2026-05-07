@@ -1,16 +1,33 @@
-const ar = encoded => Buffer.from(encoded, 'base64').toString('utf8');
-
 const TEXT = {
-  systemPrompt: ar('2KPZhtiqINmF2LPYp9i52K8g2LDZg9mKINmF2KrYrti12LUg2YHZiiDYpdiv2KfYsdipINmF2KrYrNixINmF2YTYp9io2LMg2YjZhdix2KfZgtio2Kkg2KfZhNmF2K7YstmI2YYuINmI2LjZitmB2KrZgyDZhdiz2KfYudiv2Kkg2LXYp9it2Kgg2KfZhNmF2KrYrNixINmB2Yog2KrYrdmE2YrZhCDYp9mE2YXYqNmK2LnYp9iq2Iwg2K3Ys9in2Kgg2KfZhNix2KjYrSDZiNin2YTYrtiz2KfYsdip2Iwg2YXYsdin2YLYqNipINin2YTZhdiu2LLZiNmG2Iwg2YXYudix2YHYqSDYp9mE2YXZhtiq2KzYp9iqINin2YTYo9mD2KvYsSDZhdio2YrYudmL2KfYjCDYp9mE2YXZhtiq2KzYp9iqINin2YTYsdin2YPYr9ip2Iwg2KfZhNmF2YLYp9iz2KfYqiDZiNin2YTYo9mE2YjYp9mGINin2YTZhdi32YTZiNio2KnYjCDYqtmD2YTZgdipINi02LHYp9ihINin2YTYqNi22KfYudip2Iwg2YfYp9mF2LQg2KfZhNix2KjYrdiMINiq2LPYudmK2LEg2KfZhNmF2YbYqtis2KfYqtiMINiq2YTYrtmK2LUg2KfZhNmB2YjYp9iq2YrYsdiMINiq2K3ZhNmK2YQg2KfZhNiy2KjYp9im2YbYjCDZiNin2YLYqtix2KfYrSDYudix2YjYtiDZiNmG2LXYp9im2K0g2LnZhdmE2YrYqSDZhNiq2K3Ys9mK2YYg2KfZhNix2KjYrSDZiNiq2YLZhNmK2YQg2KfZhNiu2LPYp9ix2KkuINij2KzYqCDYqNin2YTYudix2KjZitipINin2YTYqNiz2YrYt9ipINij2Ygg2KfZhNiv2KfYsdis2Kkg2KfZhNis2LLYp9im2LHZitipINit2LPYqCDZhNi62Kkg2KfZhNmF2LPYqtiu2K/ZhS4g2YTYpyDYqtiu2KrYsdi5INij2LHZgtin2YXZi9inINi62YrYsSDZhdmI2KzZiNiv2KkuINil2LDYpyDYp9it2KrYrNiqINio2YrYp9mG2KfYqtiMINin2LfZhNio2YfYpyDZhdmGINin2YTZhdiz2KrYrtiv2YUg2KjZiNi22YjYrS4g2LnZhtiv2YXYpyDYqti52LfZiiDYrdiz2KfYqNin2KrYjCDYp9i02LHYrSDYp9mE2LnZhdmE2YrYqSDYrti32YjYqSDYqNiu2LfZiNipINmI2KjYp9iu2KrYtdin2LEuINmE2Kcg2KrZgtmFINio2KrYudiv2YrZhCDYo9mIINit2LDZgSDYqNmK2KfZhtin2Kog2KfZhNiq2LfYqNmK2YLYjCDZgdmC2Lcg2YLYr9mR2YUg2KfZgtiq2LHYp9it2KfYqiDZiNiq2K3ZhNmK2YTYp9iqLgoK2YjYuNmK2YHYqSDYp9mE2YXYs9in2LnYrzoKLSDYqtit2YTZitmEINin2YTZhdio2YrYudin2Kog2KfZhNmK2YjZhdmK2Kkg2YjYp9mE2KPYs9io2YjYudmK2Kkg2YjYp9mE2LTZh9ix2YrYqS4KLSDYrdiz2KfYqCDYp9mE2LHYqNitINmI2KfZhNiu2LPYp9ix2KkuCi0g2YXYudix2YHYqSDYo9mD2KvYsSDYp9mE2YXZhtiq2KzYp9iqINmF2KjZiti52YvYpy4KLSDZhdi52LHZgdipINin2YTZhdmG2KrYrNin2Kog2KfZhNix2KfZg9iv2KkuCi0g2YXYqtin2KjYudipINin2YTZhdiu2LLZiNmGLgotINin2YTYqtmG2KjZitmHINmE2YTZhdmG2KrYrNin2Kog2KfZhNmC2LHZitio2Kkg2YXZhiDYp9mE2YbZgdin2K8uCi0g2KfZgtiq2LHYp9itINmD2YXZitipINil2LnYp9iv2Kkg2KfZhNi02LHYp9ihLgotINit2LPYp9ioINiq2YPZhNmB2Kkg2LTYsdin2KEg2KfZhNio2LbYp9i52KkuCi0g2K3Ys9in2Kgg2YfYp9mF2LQg2KfZhNix2KjYrS4KLSDYp9mC2KrYsdin2K0g2LPYudixINio2YrYuSDZhdmG2KfYs9ioLgotINiq2K3ZhNmK2YQg2KfZhNiq2LXZhtmK2YHYp9iqLgotINiq2K3ZhNmK2YQg2KfZhNmF2YLYp9iz2KfYqiDZiNin2YTYo9mE2YjYp9mGLgotINiq2YTYrtmK2LUg2KfZhNmB2YjYp9iq2YrYsS4KLSDYp9mC2KrYsdin2K0g2LnYsdmI2LYg2YTYqti12LHZitmBINin2YTZhdiu2LLZiNmGLgotINiq2YLYr9mK2YUg2YbYtdin2KbYrSDZhNiy2YrYp9iv2Kkg2KfZhNix2KjYrS4='),
-  keyMissing: 'DeepSeek API Key \u{63a}\u{64a}\u{631} \u{645}\u{648}\u{62c}\u{648}\u{62f}. \u{623}\u{636}\u{641}\u{647} \u{641}\u{64a} \u{645}\u{644}\u{641} server/.env \u{623}\u{648} \u{641}\u{64a} \u{645}\u{62a}\u{63a}\u{64a}\u{631}\u{627}\u{62a} Vercel',
-  emptyMessage: ar('2KfZhNix2LPYp9mE2Kkg2YXYt9mE2YjYqNipLg=='),
-  longMessage: ar('2KfZhNiz2KTYp9mEINi32YjZitmEINis2K/Zi9inLiDYp9iu2KrYtdix2Ycg2YLZhNmK2YTZi9inINir2YUg2KPYudivINin2YTZhdit2KfZiNmE2Kku'),
-  bigContext: ar('2YXZhNiu2LUg2KjZitin2YbYp9iqINin2YTZhdiq2KzYsSDZg9io2YrYsSDYrNiv2YvYpy4g2KPYsdiz2YQg2YXZhNiu2LXZi9inINij2LXYutixLg=='),
-  invalidKey: '\u{645}\u{641}\u{62a}\u{627}\u{62d} DeepSeek \u{63a}\u{64a}\u{631} \u{635}\u{62d}\u{64a}\u{62d} \u{623}\u{648} \u{63a}\u{64a}\u{631} \u{645}\u{641}\u{639}\u{644}. \u{631}\u{627}\u{62c}\u{639} DEEPSEEK_API_KEY.',
-  quota: ar('2KrZhSDYqtis2KfZiNiyINit2LXYqSBHZW1pbmkgQVBJINmF2KTZgtiq2YvYpy4g2K3Yp9mI2YQg2YTYp9it2YLZi9inINij2Ygg2LHYp9is2Lkg2KXYudiv2KfYr9in2Kog2KfZhNmB2YjYqtix2Kkg2YjYp9mE2K3YtdipLg=='),
-  balance: '\u{631}\u{635}\u{64a}\u{62f} DeepSeek \u{63a}\u{64a}\u{631} \u{643}\u{627}\u{641}\u{64d}. \u{623}\u{636}\u{641} \u{631}\u{635}\u{64a}\u{62f}\u{64b}\u{627} \u{625}\u{644}\u{649} \u{62d}\u{633}\u{627}\u{628} DeepSeek \u{62b}\u{645} \u{62d}\u{627}\u{648}\u{644} \u{645}\u{62c}\u{62f}\u{62f}\u{64b}\u{627}.',
-  providerError: '\u{62a}\u{639}\u{630}\u{631} \u{627}\u{644}\u{627}\u{62a}\u{635}\u{627}\u{644} \u{628}\u{640} DeepSeek \u{627}\u{644}\u{622}\u{646}. \u{62d}\u{627}\u{648}\u{644} \u{645}\u{62c}\u{62f}\u{62f}\u{64b}\u{627} \u{628}\u{639}\u{62f} \u{642}\u{644}\u{64a}\u{644}.',
-  noReply: ar('2YTZhSDZitix2KzYuSBHZW1pbmkg2LHYr9mL2Kcg2YjYp9i22K3Zi9inLiDYrdin2YjZhCDYpdi52KfYr9ipINi12YrYp9i62Kkg2KfZhNiz2KTYp9mELg==')
+  systemPrompt: `أنت مساعد ذكي متخصص في إدارة متجر ملابس ومراقبة المخزون. وظيفتك مساعدة صاحب المتجر في تحليل المبيعات، حساب الربح والخسارة، مراقبة المخزون، معرفة المنتجات الأكثر مبيعًا، المنتجات الراكدة، المقاسات والألوان المطلوبة، تكلفة شراء البضاعة، هامش الربح، تسعير المنتجات، تلخيص الفواتير، تحليل الزبائن، واقتراح عروض ونصائح عملية لتحسين الربح وتقليل الخسارة.
+
+أجب بالعربية البسيطة أو الدارجة الجزائرية حسب لغة المستخدم. لا تخترع أرقامًا غير موجودة. إذا احتجت بيانات، اطلبها من المستخدم بوضوح. عندما تعطي حسابات، اشرح العملية خطوة بخطوة وباختصار. لا تقم بتعديل أو حذف بيانات التطبيق، فقط قدّم اقتراحات وتحليلات.
+
+وظيفة المساعد:
+- تحليل المبيعات اليومية والأسبوعية والشهرية.
+- حساب الربح والخسارة.
+- معرفة أكثر المنتجات مبيعًا.
+- معرفة المنتجات الراكدة.
+- متابعة المخزون.
+- التنبيه للمنتجات القريبة من النفاد.
+- اقتراح كمية إعادة الشراء.
+- حساب تكلفة شراء البضاعة.
+- حساب هامش الربح.
+- اقتراح سعر بيع مناسب.
+- تحليل التصنيفات.
+- تحليل المقاسات والألوان.
+- تلخيص الفواتير.
+- اقتراح عروض لتصريف المخزون.
+- تقديم نصائح لزيادة الربح.`,
+  keyMissing: 'OpenRouter API Key غير موجود. أضف OPENROUTER_API_KEY في ملف server/.env أو في متغيرات Vercel',
+  emptyMessage: 'الرسالة مطلوبة.',
+  longMessage: 'السؤال طويل جدًا. اختصره قليلًا ثم أعد المحاولة.',
+  bigContext: 'ملخص بيانات المتجر كبير جدًا. أرسل ملخصًا أصغر.',
+  invalidKey: 'مفتاح OpenRouter غير صحيح أو غير مفعل. راجع OPENROUTER_API_KEY.',
+  quota: 'تم تجاوز حد OpenRouter أو Tencent Hy3 مؤقتًا. حاول لاحقًا أو راجع حدود الحساب.',
+  balance: 'رصيد OpenRouter غير كاف أو الموديل غير متاح للحساب الحالي. راجع رصيد وحالة Tencent Hy3 في OpenRouter.',
+  providerError: 'تعذر الاتصال بـ Tencent Hy3 عبر OpenRouter الآن. حاول مجددًا بعد قليل.',
+  noReply: 'لم يرجع Tencent Hy3 ردًا واضحًا. حاول إعادة صياغة السؤال.'
 };
 
 const MAX_MESSAGE_LENGTH = 1200;
@@ -19,13 +36,16 @@ const MAX_HISTORY_ITEMS = 8;
 const MAX_ARRAY_ITEMS = 20;
 
 function normalizeModel(model) {
-  return String(model || 'deepseek-chat').trim();
+  return String(model || 'tencent/hy3-preview:free').trim();
 }
 
 function getConfig() {
   return {
-    apiKey: (process.env.DEEPSEEK_API_KEY || '').trim(),
-    model: normalizeModel(process.env.DEEPSEEK_MODEL || 'deepseek-chat')
+    apiKey: (process.env.OPENROUTER_API_KEY || '').trim(),
+    model: normalizeModel(process.env.OPENROUTER_MODEL || 'tencent/hy3-preview:free'),
+    providerUrl: process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions',
+    siteUrl: process.env.OPENROUTER_SITE_URL || 'https://yasin1.vercel.app',
+    appName: process.env.OPENROUTER_APP_NAME || 'Yasin Clothing Store'
   };
 }
 
@@ -99,7 +119,6 @@ function buildPrompt({ message, businessContext, history }) {
     .join('\n');
 
   return [
-    TEXT.systemPrompt,
     'Store business context summary. Use only these numbers and do not invent missing values:',
     contextText,
     historyText ? `Recent conversation:\n${historyText}` : '',
@@ -170,7 +189,7 @@ function handleStatus(req, res) {
 
   return sendJSON(res, 200, {
     online: true,
-    provider: 'deepseek',
+    provider: 'tencent-hy3-openrouter',
     model: config.model
   });
 }
@@ -189,7 +208,7 @@ async function handleChat(req, res) {
   try {
     body = await readJSONBody(req);
   } catch (error) {
-    return sendJSON(res, 400, { error: '\u{635}\u{64a}\u{63a}\u{629} JSON \u{63a}\u{64a}\u{631} \u{635}\u{62d}\u{64a}\u{62d}\u{629}.' });
+    return sendJSON(res, 400, { error: 'صيغة JSON غير صحيحة.' });
   }
 
   const message = typeof body.message === 'string' ? body.message.trim() : '';
@@ -200,7 +219,6 @@ async function handleChat(req, res) {
   const contextSize = Buffer.byteLength(JSON.stringify(businessContext), 'utf8');
   if (contextSize > MAX_CONTEXT_LENGTH) return sendJSON(res, 413, { error: TEXT.bigContext });
 
-  const providerUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions';
   const prompt = buildPrompt({
     message,
     businessContext,
@@ -208,11 +226,13 @@ async function handleChat(req, res) {
   });
 
   try {
-    const providerResponse = await fetch(providerUrl, {
+    const providerResponse = await fetch(config.providerUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`
+        'Authorization': `Bearer ${config.apiKey}`,
+        'HTTP-Referer': config.siteUrl,
+        'X-Title': config.appName
       },
       body: JSON.stringify({
         model: config.model,
@@ -235,7 +255,7 @@ async function handleChat(req, res) {
     if (!reply) return sendJSON(res, 502, { error: TEXT.noReply });
     return sendJSON(res, 200, { reply });
   } catch (error) {
-    console.error('DeepSeek request failed:', error);
+    console.error('OpenRouter Tencent Hy3 request failed:', error);
     return sendJSON(res, 502, { error: TEXT.providerError });
   }
 }

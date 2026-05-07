@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
-const { handleChat, handleStatus } = require('../api/_lib/deepseek');
+const { handleChat, handleStatus } = require('../api/_lib/openrouter');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,5 +28,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`DeepSeek AI backend running on http://localhost:${PORT}`);
+  console.log(`Tencent Hy3/OpenRouter AI backend running on http://localhost:${PORT}`);
 });

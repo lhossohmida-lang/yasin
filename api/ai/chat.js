@@ -1,3 +1,3 @@
-const { handleChat } = require('../_lib/deepseek');
+const { handleChat } = require('../_lib/openrouter');
 
 module.exports = handleChat;
