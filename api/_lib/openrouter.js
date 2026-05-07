@@ -240,8 +240,9 @@ async function handleChat(req, res) {
           { role: 'system', content: TEXT.systemPrompt },
           { role: 'user', content: prompt }
         ],
+        reasoning: { exclude: true },
         temperature: 0.35,
-        max_tokens: 900
+        max_tokens: 1200
       })
     });
 
