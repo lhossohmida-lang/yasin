@@ -539,6 +539,10 @@ navItems.forEach(item => {
         pageSections.forEach(s => s.style.display = 'none');
         document.getElementById(targetId).style.display = 'block';
         pageTitle.innerText = item.innerText.trim();
+        if (targetId === 'section-ai') {
+            renderAIContextSummary();
+            checkAIStatus();
+        }
     });
 });
 
@@ -581,7 +585,7 @@ function applyRole(role) {
     const isWorker = role === 'worker';
     document.querySelectorAll('.nav-item').forEach(el => {
         const t = el.getAttribute('data-target');
-        el.style.display = (isWorker && (t === 'section-inventory' || t === 'section-accounts')) ? 'none' : 'flex';
+        el.style.display = (isWorker && (t === 'section-inventory' || t === 'section-accounts' || t === 'section-ai')) ? 'none' : 'flex';
     });
     if (!isWorker) startAccountsListener();
     document.querySelectorAll('.card-capital, .card-profit, .card-loss').forEach(el => {
@@ -631,6 +635,10 @@ function initLogin() {
                 }
             } catch (err) {
                 error.style.display = 'block';
+                if (err && err.code === 'permission-denied') {
+                    error.textContent = '\u062A\u0639\u0630\u0631 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u062D\u0633\u0627\u0628\u0627\u062A \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644. \u0631\u0627\u062C\u0639 \u0642\u0648\u0627\u0639\u062F Firestore \u0648\u0623\u0639\u062F \u0646\u0634\u0631\u0647\u0627.';
+                    return;
+                }
                 error.textContent = 'خطأ في الاتصال، حاول مجددًا';
             } finally {
                 btn.disabled = false;
@@ -735,6 +743,410 @@ async function deleteAccount(id) {
     if (!confirm('هل تريد حذف هذا الحساب؟')) return;
     await db.collection("accounts").doc(id).delete();
 }
+
+// ================== AI assistant ==================
+const AI_TEXT = {
+    TITLE: '\u{645}\u{633}\u{627}\u{639}\u{62f} \u{627}\u{644}\u{645}\u{62a}\u{62c}\u{631} \u{627}\u{644}\u{630}\u{643}\u{64a}',
+    STATUS_CHECK: '\u{641}\u{62d}\u{635} \u{627}\u{644}\u{627}\u{62a}\u{635}\u{627}\u{644}',
+    STATUS_ONLINE: '\u{645}\u{62a}\u{635}\u{644}',
+    STATUS_OFFLINE: '\u{63a}\u{64a}\u{631} \u{645}\u{62a}\u{635}\u{644}',
+    STATUS_UNKNOWN: '\u{644}\u{645} \u{64a}\u{62a}\u{645} \u{641}\u{62d}\u{635} \u{627}\u{644}\u{627}\u{62a}\u{635}\u{627}\u{644} \u{628}\u{639}\u{62f}',
+    LOADING: '\u{62c}\u{627}\u{631}\u{64a} \u{627}\u{644}\u{62a}\u{62d}\u{644}\u{64a}\u{644}...',
+    ERROR_GENERIC: '\u{62d}\u{62f}\u{62b} \u{62e}\u{637}\u{623} \u{623}\u{62b}\u{646}\u{627}\u{621} \u{627}\u{644}\u{62a}\u{648}\u{627}\u{635}\u{644} \u{645}\u{639} \u{627}\u{644}\u{645}\u{633}\u{627}\u{639}\u{62f}.',
+    EMPTY_ERROR: '\u{627}\u{643}\u{62a}\u{628} \u{633}\u{624}\u{627}\u{644}\u{64b}\u{627} \u{623}\u{648}\u{644}\u{64b}\u{627}.',
+    CHAT_EMPTY: '\u{627}\u{633}\u{623}\u{644} \u{639}\u{646} \u{627}\u{644}\u{631}\u{628}\u{62d}\u{60c} \u{627}\u{644}\u{645}\u{62e}\u{632}\u{648}\u{646}\u{60c} \u{627}\u{644}\u{645}\u{646}\u{62a}\u{62c}\u{627}\u{62a} \u{627}\u{644}\u{631}\u{627}\u{643}\u{62f}\u{629}\u{60c} \u{623}\u{648} \u{627}\u{642}\u{62a}\u{631}\u{627}\u{62d} \u{639}\u{631}\u{648}\u{636}.',
+    TODAY_SALES: '\u{645}\u{628}\u{64a}\u{639}\u{627}\u{62a} \u{627}\u{644}\u{64a}\u{648}\u{645}',
+    TODAY_PROFIT: '\u{631}\u{628}\u{62d} \u{627}\u{644}\u{64a}\u{648}\u{645}',
+    ORDERS: '\u{639}\u{62f}\u{62f} \u{627}\u{644}\u{637}\u{644}\u{628}\u{627}\u{62a}',
+    PRODUCTS: '\u{639}\u{62f}\u{62f} \u{627}\u{644}\u{645}\u{646}\u{62a}\u{62c}\u{627}\u{62a}',
+    LOW_STOCK: '\u{642}\u{627}\u{631}\u{628} \u{627}\u{644}\u{646}\u{641}\u{627}\u{62f}',
+    OUT_STOCK: '\u{646}\u{641}\u{62f} \u{627}\u{644}\u{645}\u{62e}\u{632}\u{648}\u{646}',
+    DEAD_STOCK: '\u{645}\u{646}\u{62a}\u{62c}\u{627}\u{62a} \u{631}\u{627}\u{643}\u{62f}\u{629}',
+    CURRENCY: '\u{62f}\u{62c}',
+    UNKNOWN: '\u{63a}\u{64a}\u{631} \u{645}\u{62d}\u{62f}\u{62f}'
+};
+
+const AI_SUGGESTIONS = [
+    '\u{627}\u{62d}\u{633}\u{628} \u{631}\u{628}\u{62d} \u{627}\u{644}\u{64a}\u{648}\u{645}',
+    '\u{644}\u{62e}\u{635} \u{644}\u{64a} \u{645}\u{628}\u{64a}\u{639}\u{627}\u{62a} \u{627}\u{644}\u{64a}\u{648}\u{645}',
+    '\u{645}\u{627} \u{647}\u{64a} \u{627}\u{644}\u{645}\u{646}\u{62a}\u{62c}\u{627}\u{62a} \u{627}\u{644}\u{623}\u{643}\u{62b}\u{631} \u{645}\u{628}\u{64a}\u{639}\u{64b}\u{627}\u{61f}',
+    '\u{645}\u{627} \u{647}\u{64a} \u{627}\u{644}\u{645}\u{646}\u{62a}\u{62c}\u{627}\u{62a} \u{627}\u{644}\u{62a}\u{64a} \u{642}\u{627}\u{631}\u{628}\u{62a} \u{639}\u{644}\u{649} \u{627}\u{644}\u{646}\u{641}\u{627}\u{62f}\u{61f}',
+    '\u{645}\u{627} \u{647}\u{64a} \u{627}\u{644}\u{645}\u{646}\u{62a}\u{62c}\u{627}\u{62a} \u{627}\u{644}\u{631}\u{627}\u{643}\u{62f}\u{629}\u{61f}',
+    '\u{645}\u{627} \u{647}\u{648} \u{623}\u{641}\u{636}\u{644} \u{633}\u{639}\u{631} \u{628}\u{64a}\u{639} \u{644}\u{647}\u{630}\u{627} \u{627}\u{644}\u{645}\u{646}\u{62a}\u{62c}\u{61f}',
+    '\u{645}\u{627} \u{647}\u{64a} \u{627}\u{644}\u{645}\u{642}\u{627}\u{633}\u{627}\u{62a} \u{627}\u{644}\u{623}\u{643}\u{62b}\u{631} \u{637}\u{644}\u{628}\u{64b}\u{627}\u{61f}',
+    '\u{645}\u{627} \u{647}\u{64a} \u{627}\u{644}\u{623}\u{644}\u{648}\u{627}\u{646} \u{627}\u{644}\u{623}\u{643}\u{62b}\u{631} \u{637}\u{644}\u{628}\u{64b}\u{627}\u{61f}',
+    '\u{627}\u{642}\u{62a}\u{631}\u{62d} \u{644}\u{64a} \u{639}\u{631}\u{636}\u{64b}\u{627} \u{644}\u{62a}\u{635}\u{631}\u{64a}\u{641} \u{627}\u{644}\u{645}\u{62e}\u{632}\u{648}\u{646}',
+    '\u{643}\u{645} \u{623}\u{62d}\u{62a}\u{627}\u{62c} \u{623}\u{646} \u{623}\u{634}\u{62a}\u{631}\u{64a} \u{645}\u{646} \u{647}\u{630}\u{627} \u{627}\u{644}\u{645}\u{646}\u{62a}\u{62c}\u{61f}',
+    '\u{62d}\u{644}\u{644} \u{644}\u{64a} \u{627}\u{644}\u{641}\u{648}\u{627}\u{62a}\u{64a}\u{631}',
+    '\u{623}\u{639}\u{637}\u{646}\u{64a} \u{646}\u{635}\u{627}\u{626}\u{62d} \u{644}\u{632}\u{64a}\u{627}\u{62f}\u{629} \u{627}\u{644}\u{631}\u{628}\u{62d}'
+];
+
+const AI_API_BASE = (() => {
+    const isHttpFrontend = ['3000', '5173'].includes(window.location.port);
+    return window.location.protocol.startsWith('http') && isHttpFrontend
+        ? '/api/ai'
+        : 'http://localhost:5000/api/ai';
+})();
+
+let aiChatHistory = [];
+
+function getDocDate(item) {
+    if (!item) return null;
+    if (item.timestamp && typeof item.timestamp.toDate === 'function') return item.timestamp.toDate();
+    if (item.timestamp && item.timestamp.seconds) return new Date(item.timestamp.seconds * 1000);
+    if (item.date) {
+        const parsed = new Date(item.date);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+    return null;
+}
+
+function isSameDay(date, reference) {
+    return date && date.getFullYear() === reference.getFullYear()
+        && date.getMonth() === reference.getMonth()
+        && date.getDate() === reference.getDate();
+}
+
+function isSameMonth(date, reference) {
+    return date && date.getFullYear() === reference.getFullYear()
+        && date.getMonth() === reference.getMonth();
+}
+
+function sumBy(items, mapper) {
+    return items.reduce((sum, item) => sum + (Number(mapper(item)) || 0), 0);
+}
+
+function roundAmount(value) {
+    return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+function formatAICurrency(value) {
+    return `${roundAmount(value).toLocaleString('ar-DZ')} ${AI_TEXT.CURRENCY}`;
+}
+
+function summarizeProductSales(sales) {
+    const grouped = new Map();
+    sales.forEach(sale => {
+        const key = sale.productId || sale.productName || AI_TEXT.UNKNOWN;
+        const current = grouped.get(key) || {
+            name: sale.productName || AI_TEXT.UNKNOWN,
+            soldQty: 0,
+            revenue: 0,
+            profit: 0
+        };
+        current.soldQty += Number(sale.qty) || 0;
+        current.revenue += Number(sale.total) || 0;
+        current.profit += Number(sale.profit) || 0;
+        grouped.set(key, current);
+    });
+    return Array.from(grouped.values())
+        .sort((a, b) => b.soldQty - a.soldQty)
+        .slice(0, 10)
+        .map(item => ({
+            name: item.name,
+            soldQty: item.soldQty,
+            revenue: roundAmount(item.revenue),
+            profit: roundAmount(item.profit)
+        }));
+}
+
+function summarizeInventoryBy(fieldName) {
+    const grouped = new Map();
+    inventory.forEach(item => {
+        const key = item[fieldName] || AI_TEXT.UNKNOWN;
+        const current = grouped.get(key) || {
+            name: key,
+            productsCount: 0,
+            stockQty: 0,
+            purchaseValue: 0,
+            expectedSalesValue: 0
+        };
+        current.productsCount += 1;
+        current.stockQty += Number(item.qty) || 0;
+        current.purchaseValue += (Number(item.qty) || 0) * (Number(item.buyPrice) || 0);
+        current.expectedSalesValue += (Number(item.qty) || 0) * (Number(item.sellPrice) || 0);
+        grouped.set(key, current);
+    });
+    return Array.from(grouped.values())
+        .sort((a, b) => b.stockQty - a.stockQty)
+        .slice(0, 12)
+        .map(item => ({
+            ...item,
+            purchaseValue: roundAmount(item.purchaseValue),
+            expectedSalesValue: roundAmount(item.expectedSalesValue)
+        }));
+}
+
+function buildAIBusinessContext() {
+    const now = new Date();
+    const activeSales = salesHistory.filter(sale => !sale.returned);
+    const todaySales = activeSales.filter(sale => isSameDay(getDocDate(sale), now));
+    const monthSales = activeSales.filter(sale => isSameMonth(getDocDate(sale), now));
+    const expenseRows = [
+        ...expenses.map(item => ({ ...item, aiType: 'expense' })),
+        ...workerSalaries.map(item => ({ ...item, aiType: 'salary' }))
+    ];
+    const todayExpenses = expenseRows.filter(item => isSameDay(getDocDate(item), now));
+    const monthExpenses = expenseRows.filter(item => isSameMonth(getDocDate(item), now));
+    const soldProductKeys = new Set(activeSales.map(sale => sale.productId || sale.productName));
+    const deadStockProducts = inventory
+        .filter(item => (Number(item.qty) || 0) > 0 && !soldProductKeys.has(item.id) && !soldProductKeys.has(item.name))
+        .sort((a, b) => (Number(b.qty) || 0) - (Number(a.qty) || 0))
+        .slice(0, 15);
+
+    const todaySalesTotal = sumBy(todaySales, sale => sale.total);
+    const todayPurchaseCost = sumBy(todaySales, sale => (Number(sale.buyPrice) || 0) * (Number(sale.qty) || 0));
+    const todayExpenseTotal = sumBy(todayExpenses, item => item.amount);
+    const monthSalesTotal = sumBy(monthSales, sale => sale.total);
+    const monthExpenseTotal = sumBy(monthExpenses, item => item.amount);
+
+    return {
+        appKnowledge: {
+            appName: 'إدارة متجر الملابس',
+            pages: Array.from(document.querySelectorAll('.nav-item')).map(item => item.innerText.trim()),
+            calculations: {
+                profit: 'sales - purchaseCost - expenses',
+                profitMargin: 'profit / sales * 100',
+                stockValue: 'qty * purchaseCost',
+                expectedRevenue: 'qty * sellPrice'
+            }
+        },
+        today: {
+            salesTotal: roundAmount(todaySalesTotal),
+            purchaseCost: roundAmount(todayPurchaseCost),
+            expenses: roundAmount(todayExpenseTotal),
+            profit: roundAmount(todaySalesTotal - todayPurchaseCost - todayExpenseTotal),
+            ordersCount: todaySales.length,
+            soldItemsCount: sumBy(todaySales, sale => sale.qty)
+        },
+        month: {
+            salesTotal: roundAmount(monthSalesTotal),
+            profit: roundAmount(sumBy(monthSales, sale => sale.profit) - monthExpenseTotal),
+            ordersCount: monthSales.length,
+            soldItemsCount: sumBy(monthSales, sale => sale.qty)
+        },
+        inventory: {
+            totalProducts: inventory.length,
+            totalStockQty: sumBy(inventory, item => item.qty),
+            lowStockCount: inventory.filter(item => (Number(item.qty) || 0) > 0 && (Number(item.qty) || 0) <= 3).length,
+            outOfStockCount: inventory.filter(item => (Number(item.qty) || 0) <= 0).length,
+            deadStockCount: deadStockProducts.length,
+            stockPurchaseValue: roundAmount(sumBy(inventory, item => (Number(item.qty) || 0) * (Number(item.buyPrice) || 0))),
+            expectedSalesValue: roundAmount(sumBy(inventory, item => (Number(item.qty) || 0) * (Number(item.sellPrice) || 0)))
+        },
+        topSellingProducts: summarizeProductSales(activeSales),
+        lowStockProducts: inventory
+            .filter(item => (Number(item.qty) || 0) > 0 && (Number(item.qty) || 0) <= 3)
+            .sort((a, b) => (Number(a.qty) || 0) - (Number(b.qty) || 0))
+            .slice(0, 15)
+            .map(item => ({
+                name: item.name,
+                qty: Number(item.qty) || 0,
+                sellPrice: Number(item.sellPrice) || 0,
+                buyPrice: Number(item.buyPrice) || 0
+            })),
+        deadStockProducts: deadStockProducts.map(item => ({
+            name: item.name,
+            qty: Number(item.qty) || 0,
+            sellPrice: Number(item.sellPrice) || 0,
+            buyPrice: Number(item.buyPrice) || 0
+        })),
+        inventorySummary: inventory.slice(0, 20).map(item => ({
+            name: item.name,
+            qty: Number(item.qty) || 0,
+            buyPrice: Number(item.buyPrice) || 0,
+            sellPrice: Number(item.sellPrice) || 0,
+            stockValue: roundAmount((Number(item.qty) || 0) * (Number(item.buyPrice) || 0)),
+            expectedRevenue: roundAmount((Number(item.qty) || 0) * (Number(item.sellPrice) || 0))
+        })),
+        categoriesSummary: summarizeInventoryBy('category'),
+        sizesSummary: summarizeInventoryBy('size'),
+        colorsSummary: summarizeInventoryBy('color'),
+        recentSales: activeSales.slice(0, 12).map(sale => ({
+            productName: sale.productName,
+            qty: Number(sale.qty) || 0,
+            sellPrice: Number(sale.sellPrice) || 0,
+            total: Number(sale.total) || 0,
+            profit: Number(sale.profit) || 0,
+            date: sale.date || ''
+        })),
+        currency: AI_TEXT.CURRENCY
+    };
+}
+
+async function checkAIStatus() {
+    const pill = document.getElementById('ai-status-pill');
+    const label = document.getElementById('ai-status-label');
+    const detail = document.getElementById('ai-status-detail');
+    if (!pill || !label || !detail) return;
+
+    pill.className = 'ai-status-pill loading';
+    label.textContent = AI_TEXT.LOADING;
+    detail.textContent = '';
+
+    try {
+        const response = await fetch(`${AI_API_BASE}/status`);
+        const data = await response.json();
+        if (data.online) {
+            pill.className = 'ai-status-pill online';
+            label.textContent = AI_TEXT.STATUS_ONLINE;
+            detail.textContent = `${data.provider || 'gemini'} · ${data.model || ''}`;
+        } else {
+            pill.className = 'ai-status-pill offline';
+            label.textContent = AI_TEXT.STATUS_OFFLINE;
+            detail.textContent = data.error || AI_TEXT.ERROR_GENERIC;
+        }
+    } catch (err) {
+        pill.className = 'ai-status-pill offline';
+        label.textContent = AI_TEXT.STATUS_OFFLINE;
+        detail.textContent = AI_TEXT.ERROR_GENERIC;
+    }
+}
+
+async function sendAIMessage(message, businessContext, history) {
+    const response = await fetch(`${AI_API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, businessContext, history })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || AI_TEXT.ERROR_GENERIC);
+    return data;
+}
+
+function renderAIContextSummary() {
+    const container = document.getElementById('ai-context-summary');
+    if (!container) return;
+
+    const context = buildAIBusinessContext();
+    const rows = [
+        [AI_TEXT.TODAY_SALES, formatAICurrency(context.today.salesTotal)],
+        [AI_TEXT.TODAY_PROFIT, formatAICurrency(context.today.profit)],
+        [AI_TEXT.ORDERS, context.today.ordersCount],
+        [AI_TEXT.PRODUCTS, context.inventory.totalProducts],
+        [AI_TEXT.LOW_STOCK, context.inventory.lowStockCount],
+        [AI_TEXT.OUT_STOCK, context.inventory.outOfStockCount],
+        [AI_TEXT.DEAD_STOCK, context.inventory.deadStockCount]
+    ];
+
+    container.innerHTML = '';
+    rows.forEach(([label, value]) => {
+        const item = document.createElement('div');
+        item.className = 'ai-context-item';
+        const labelEl = document.createElement('span');
+        labelEl.textContent = label;
+        const valueEl = document.createElement('strong');
+        valueEl.textContent = value;
+        item.append(labelEl, valueEl);
+        container.appendChild(item);
+    });
+}
+
+function renderAISuggestions() {
+    const container = document.getElementById('ai-suggestions');
+    const input = document.getElementById('ai-message-input');
+    if (!container || !input) return;
+
+    container.innerHTML = '';
+    AI_SUGGESTIONS.forEach(text => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ai-suggestion';
+        button.textContent = text;
+        button.addEventListener('click', () => {
+            input.value = text;
+            input.focus();
+        });
+        container.appendChild(button);
+    });
+}
+
+function renderAIChat() {
+    const messages = document.getElementById('ai-chat-messages');
+    if (!messages) return;
+    messages.innerHTML = '';
+
+    if (aiChatHistory.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'ai-empty-state';
+        empty.textContent = AI_TEXT.CHAT_EMPTY;
+        messages.appendChild(empty);
+        return;
+    }
+
+    aiChatHistory.forEach(item => {
+        const row = document.createElement('div');
+        row.className = `ai-message ${item.role}`;
+        row.textContent = item.content;
+        messages.appendChild(row);
+    });
+    messages.scrollTop = messages.scrollHeight;
+}
+
+function showAIError(message) {
+    const error = document.getElementById('ai-error');
+    if (!error) return;
+    error.textContent = message || '';
+    error.style.display = message ? 'block' : 'none';
+}
+
+function initAIChat() {
+    const form = document.getElementById('ai-chat-form');
+    const input = document.getElementById('ai-message-input');
+    const clearBtn = document.getElementById('ai-clear-chat');
+    const checkBtn = document.getElementById('ai-check-status');
+    const sendBtn = document.getElementById('ai-send-message');
+    if (!form || !input) return;
+
+    renderAISuggestions();
+    renderAIContextSummary();
+    renderAIChat();
+    checkAIStatus();
+
+    if (checkBtn) checkBtn.addEventListener('click', checkAIStatus);
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+        aiChatHistory = [];
+        showAIError('');
+        renderAIChat();
+    });
+
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const message = input.value.trim();
+        if (!message) {
+            showAIError(AI_TEXT.EMPTY_ERROR);
+            return;
+        }
+
+        showAIError('');
+        const requestHistory = aiChatHistory.slice(-8);
+        aiChatHistory.push({ role: 'user', content: message });
+        aiChatHistory.push({ role: 'assistant', content: AI_TEXT.LOADING });
+        input.value = '';
+        if (sendBtn) sendBtn.disabled = true;
+        renderAIChat();
+
+        try {
+            const businessContext = buildAIBusinessContext();
+            const data = await sendAIMessage(message, businessContext, requestHistory);
+            aiChatHistory[aiChatHistory.length - 1] = {
+                role: 'assistant',
+                content: data.reply || AI_TEXT.ERROR_GENERIC
+            };
+        } catch (err) {
+            aiChatHistory[aiChatHistory.length - 1] = {
+                role: 'assistant',
+                content: err.message || AI_TEXT.ERROR_GENERIC
+            };
+            showAIError(err.message || AI_TEXT.ERROR_GENERIC);
+        } finally {
+            if (sendBtn) sendBtn.disabled = false;
+            renderAIChat();
+        }
+    });
+}
+
+initAIChat();
 
 // ================== القائمة الجانبية (موبايل) ==================
 const hamburgerBtn = document.getElementById('hamburger-btn');

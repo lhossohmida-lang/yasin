@@ -32,5 +32,8 @@ service cloud.firestore {
     match /worker_salaries/{document} {
       allow read, write: if true;
     }
+    match /accounts/{document} {
+      allow read, write: if true;
+    }
   }
 }
