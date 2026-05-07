@@ -991,7 +991,7 @@ async function checkAIStatus() {
         if (data.online) {
             pill.className = 'ai-status-pill online';
             label.textContent = AI_TEXT.STATUS_ONLINE;
-            detail.textContent = `${data.provider || 'gemini'} · ${data.model || ''}`;
+            detail.textContent = `${data.provider || 'deepseek'} · ${data.model || ''}`;
         } else {
             pill.className = 'ai-status-pill offline';
             label.textContent = AI_TEXT.STATUS_OFFLINE;

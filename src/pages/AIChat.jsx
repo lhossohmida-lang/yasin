@@ -3,7 +3,7 @@ import { checkAIStatus, sendAIMessage } from '../services/aiService';
 
 const t = {
   title: '\u{645}\u{633}\u{627}\u{639}\u{62f} \u{627}\u{644}\u{645}\u{62a}\u{62c}\u{631} \u{627}\u{644}\u{630}\u{643}\u{64a}',
-  status: '\u{62d}\u{627}\u{644}\u{629} \u{627}\u{62a}\u{635}\u{627}\u{644} Gemini',
+  status: '\u{62d}\u{627}\u{644}\u{629} \u{627}\u{62a}\u{635}\u{627}\u{644} DeepSeek',
   check: '\u{641}\u{62d}\u{635} \u{627}\u{644}\u{627}\u{62a}\u{635}\u{627}\u{644}',
   clear: '\u{645}\u{633}\u{62d} \u{627}\u{644}\u{645}\u{62d}\u{627}\u{62f}\u{62b}\u{629}',
   send: '\u{625}\u{631}\u{633}\u{627}\u{644}',

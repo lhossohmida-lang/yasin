@@ -2,13 +2,13 @@ const ar = encoded => Buffer.from(encoded, 'base64').toString('utf8');
 
 const TEXT = {
   systemPrompt: ar('2KPZhtiqINmF2LPYp9i52K8g2LDZg9mKINmF2KrYrti12LUg2YHZiiDYpdiv2KfYsdipINmF2KrYrNixINmF2YTYp9io2LMg2YjZhdix2KfZgtio2Kkg2KfZhNmF2K7YstmI2YYuINmI2LjZitmB2KrZgyDZhdiz2KfYudiv2Kkg2LXYp9it2Kgg2KfZhNmF2KrYrNixINmB2Yog2KrYrdmE2YrZhCDYp9mE2YXYqNmK2LnYp9iq2Iwg2K3Ys9in2Kgg2KfZhNix2KjYrSDZiNin2YTYrtiz2KfYsdip2Iwg2YXYsdin2YLYqNipINin2YTZhdiu2LLZiNmG2Iwg2YXYudix2YHYqSDYp9mE2YXZhtiq2KzYp9iqINin2YTYo9mD2KvYsSDZhdio2YrYudmL2KfYjCDYp9mE2YXZhtiq2KzYp9iqINin2YTYsdin2YPYr9ip2Iwg2KfZhNmF2YLYp9iz2KfYqiDZiNin2YTYo9mE2YjYp9mGINin2YTZhdi32YTZiNio2KnYjCDYqtmD2YTZgdipINi02LHYp9ihINin2YTYqNi22KfYudip2Iwg2YfYp9mF2LQg2KfZhNix2KjYrdiMINiq2LPYudmK2LEg2KfZhNmF2YbYqtis2KfYqtiMINiq2YTYrtmK2LUg2KfZhNmB2YjYp9iq2YrYsdiMINiq2K3ZhNmK2YQg2KfZhNiy2KjYp9im2YbYjCDZiNin2YLYqtix2KfYrSDYudix2YjYtiDZiNmG2LXYp9im2K0g2LnZhdmE2YrYqSDZhNiq2K3Ys9mK2YYg2KfZhNix2KjYrSDZiNiq2YLZhNmK2YQg2KfZhNiu2LPYp9ix2KkuINij2KzYqCDYqNin2YTYudix2KjZitipINin2YTYqNiz2YrYt9ipINij2Ygg2KfZhNiv2KfYsdis2Kkg2KfZhNis2LLYp9im2LHZitipINit2LPYqCDZhNi62Kkg2KfZhNmF2LPYqtiu2K/ZhS4g2YTYpyDYqtiu2KrYsdi5INij2LHZgtin2YXZi9inINi62YrYsSDZhdmI2KzZiNiv2KkuINil2LDYpyDYp9it2KrYrNiqINio2YrYp9mG2KfYqtiMINin2LfZhNio2YfYpyDZhdmGINin2YTZhdiz2KrYrtiv2YUg2KjZiNi22YjYrS4g2LnZhtiv2YXYpyDYqti52LfZiiDYrdiz2KfYqNin2KrYjCDYp9i02LHYrSDYp9mE2LnZhdmE2YrYqSDYrti32YjYqSDYqNiu2LfZiNipINmI2KjYp9iu2KrYtdin2LEuINmE2Kcg2KrZgtmFINio2KrYudiv2YrZhCDYo9mIINit2LDZgSDYqNmK2KfZhtin2Kog2KfZhNiq2LfYqNmK2YLYjCDZgdmC2Lcg2YLYr9mR2YUg2KfZgtiq2LHYp9it2KfYqiDZiNiq2K3ZhNmK2YTYp9iqLgoK2YjYuNmK2YHYqSDYp9mE2YXYs9in2LnYrzoKLSDYqtit2YTZitmEINin2YTZhdio2YrYudin2Kog2KfZhNmK2YjZhdmK2Kkg2YjYp9mE2KPYs9io2YjYudmK2Kkg2YjYp9mE2LTZh9ix2YrYqS4KLSDYrdiz2KfYqCDYp9mE2LHYqNitINmI2KfZhNiu2LPYp9ix2KkuCi0g2YXYudix2YHYqSDYo9mD2KvYsSDYp9mE2YXZhtiq2KzYp9iqINmF2KjZiti52YvYpy4KLSDZhdi52LHZgdipINin2YTZhdmG2KrYrNin2Kog2KfZhNix2KfZg9iv2KkuCi0g2YXYqtin2KjYudipINin2YTZhdiu2LLZiNmGLgotINin2YTYqtmG2KjZitmHINmE2YTZhdmG2KrYrNin2Kog2KfZhNmC2LHZitio2Kkg2YXZhiDYp9mE2YbZgdin2K8uCi0g2KfZgtiq2LHYp9itINmD2YXZitipINil2LnYp9iv2Kkg2KfZhNi02LHYp9ihLgotINit2LPYp9ioINiq2YPZhNmB2Kkg2LTYsdin2KEg2KfZhNio2LbYp9i52KkuCi0g2K3Ys9in2Kgg2YfYp9mF2LQg2KfZhNix2KjYrS4KLSDYp9mC2KrYsdin2K0g2LPYudixINio2YrYuSDZhdmG2KfYs9ioLgotINiq2K3ZhNmK2YQg2KfZhNiq2LXZhtmK2YHYp9iqLgotINiq2K3ZhNmK2YQg2KfZhNmF2YLYp9iz2KfYqiDZiNin2YTYo9mE2YjYp9mGLgotINiq2YTYrtmK2LUg2KfZhNmB2YjYp9iq2YrYsS4KLSDYp9mC2KrYsdin2K0g2LnYsdmI2LYg2YTYqti12LHZitmBINin2YTZhdiu2LLZiNmGLgotINiq2YLYr9mK2YUg2YbYtdin2KbYrSDZhNiy2YrYp9iv2Kkg2KfZhNix2KjYrS4='),
-  keyMissing: ar('R2VtaW5pIEFQSSBLZXkg2LrZitixINmF2YjYrNmI2K8uINij2LbZgdmHINmB2Yog2YXZhNmBIHNlcnZlci8uZW52'),
+  keyMissing: 'DeepSeek API Key \u{63a}\u{64a}\u{631} \u{645}\u{648}\u{62c}\u{648}\u{62f}. \u{623}\u{636}\u{641}\u{647} \u{641}\u{64a} \u{645}\u{644}\u{641} server/.env \u{623}\u{648} \u{641}\u{64a} \u{645}\u{62a}\u{63a}\u{64a}\u{631}\u{627}\u{62a} Vercel',
   emptyMessage: ar('2KfZhNix2LPYp9mE2Kkg2YXYt9mE2YjYqNipLg=='),
   longMessage: ar('2KfZhNiz2KTYp9mEINi32YjZitmEINis2K/Zi9inLiDYp9iu2KrYtdix2Ycg2YLZhNmK2YTZi9inINir2YUg2KPYudivINin2YTZhdit2KfZiNmE2Kku'),
   bigContext: ar('2YXZhNiu2LUg2KjZitin2YbYp9iqINin2YTZhdiq2KzYsSDZg9io2YrYsSDYrNiv2YvYpy4g2KPYsdiz2YQg2YXZhNiu2LXZi9inINij2LXYutixLg=='),
-  invalidKey: ar('2YXZgdmq2KfYrSBHZW1pbmkg2LrZitixINi12K3ZititINij2Ygg2LrZitixINmF2YHYudmELiDYsdin2KzYuSBHRU1JTklfQVBJX0tFWSDZgdmKIHNlcnZlci8uZW52Lg=='),
+  invalidKey: '\u{645}\u{641}\u{62a}\u{627}\u{62d} DeepSeek \u{63a}\u{64a}\u{631} \u{635}\u{62d}\u{64a}\u{62d} \u{623}\u{648} \u{63a}\u{64a}\u{631} \u{645}\u{641}\u{639}\u{644}. \u{631}\u{627}\u{62c}\u{639} DEEPSEEK_API_KEY.',
   quota: ar('2KrZhSDYqtis2KfZiNiyINit2LXYqSBHZW1pbmkgQVBJINmF2KTZgtiq2YvYpy4g2K3Yp9mI2YQg2YTYp9it2YLZi9inINij2Ygg2LHYp9is2Lkg2KXYudiv2KfYr9in2Kog2KfZhNmB2YjYqtix2Kkg2YjYp9mE2K3YtdipLg=='),
-  geminiError: ar('2KrYudiw2LEg2KfZhNin2KrYtdin2YQg2KjZgCBHZW1pbmkg2KfZhNii2YYuINit2KfZiNmEINmF2KzYr9iv2YvYpyDYqNi52K8g2YLZhNmK2YQu'),
+  providerError: '\u{62a}\u{639}\u{630}\u{631} \u{627}\u{644}\u{627}\u{62a}\u{635}\u{627}\u{644} \u{628}\u{640} DeepSeek \u{627}\u{644}\u{622}\u{646}. \u{62d}\u{627}\u{648}\u{644} \u{645}\u{62c}\u{62f}\u{62f}\u{64b}\u{627} \u{628}\u{639}\u{62f} \u{642}\u{644}\u{64a}\u{644}.',
   noReply: ar('2YTZhSDZitix2KzYuSBHZW1pbmkg2LHYr9mL2Kcg2YjYp9i22K3Zi9inLiDYrdin2YjZhCDYpdi52KfYr9ipINi12YrYp9i62Kkg2KfZhNiz2KTYp9mELg==')
 };
 
@@ -18,20 +18,20 @@ const MAX_HISTORY_ITEMS = 8;
 const MAX_ARRAY_ITEMS = 20;
 
 function normalizeModel(model) {
-  return String(model || 'gemini-1.5-flash').replace(/^models\//, '').trim();
+  return String(model || 'deepseek-chat').trim();
 }
 
 function getConfig() {
   return {
-    apiKey: (process.env.GEMINI_API_KEY || '').trim(),
-    model: normalizeModel(process.env.GEMINI_MODEL || 'gemini-1.5-flash')
+    apiKey: (process.env.DEEPSEEK_API_KEY || '').trim(),
+    model: normalizeModel(process.env.DEEPSEEK_MODEL || 'deepseek-chat')
   };
 }
 
-function hasUsableGeminiKey(apiKey) {
+function hasUsableProviderKey(apiKey) {
   if (!apiKey) return false;
-  if (apiKey.length < 20) return false;
-  if (/placeholder|your_|put_/i.test(apiKey)) return false;
+  if (apiKey.length < 12) return false;
+  if (/placeholder|your_|put_|ضع|مفتاح/i.test(apiKey)) return false;
   return true;
 }
 
@@ -106,17 +106,19 @@ function buildPrompt({ message, businessContext, history }) {
   ].filter(Boolean).join('\n\n');
 }
 
-function extractGeminiReply(payload) {
-  const parts = payload && payload.candidates && payload.candidates[0]
-    && payload.candidates[0].content && payload.candidates[0].content.parts;
-
-  if (!Array.isArray(parts)) return '';
-  return parts.map(part => part.text || '').join('\n').trim();
+function extractProviderReply(payload) {
+  return String(
+    payload &&
+    payload.choices &&
+    payload.choices[0] &&
+    payload.choices[0].message &&
+    payload.choices[0].message.content || ''
+  ).trim();
 }
 
-function classifyGeminiError(status, payload) {
+function classifyProviderError(status, payload) {
   const message = `${payload && payload.error && payload.error.message || ''}`.toLowerCase();
-  const code = `${payload && payload.error && payload.error.status || ''}`.toLowerCase();
+  const code = `${payload && payload.error && (payload.error.status || payload.error.code) || ''}`.toLowerCase();
 
   if (status === 429 || message.includes('quota') || message.includes('rate')) {
     return { status: 429, error: TEXT.quota };
@@ -128,12 +130,14 @@ function classifyGeminiError(status, payload) {
     status === 403 ||
     code.includes('permission') ||
     message.includes('api key') ||
+    message.includes('authentication') ||
+    message.includes('unauthorized') ||
     message.includes('invalid')
   ) {
     return { status: 401, error: TEXT.invalidKey };
   }
 
-  return { status: 502, error: TEXT.geminiError };
+  return { status: 502, error: TEXT.providerError };
 }
 
 async function readJSONBody(req) {
@@ -152,7 +156,7 @@ function handleStatus(req, res) {
   if (req.method !== 'GET') return sendJSON(res, 405, { error: 'Method not allowed' });
 
   const config = getConfig();
-  if (!hasUsableGeminiKey(config.apiKey)) {
+  if (!hasUsableProviderKey(config.apiKey)) {
     return sendJSON(res, 200, {
       online: false,
       error: TEXT.keyMissing
@@ -161,7 +165,7 @@ function handleStatus(req, res) {
 
   return sendJSON(res, 200, {
     online: true,
-    provider: 'gemini',
+    provider: 'deepseek',
     model: config.model
   });
 }
@@ -172,7 +176,7 @@ async function handleChat(req, res) {
   if (req.method !== 'POST') return sendJSON(res, 405, { error: 'Method not allowed' });
 
   const config = getConfig();
-  if (!hasUsableGeminiKey(config.apiKey)) {
+  if (!hasUsableProviderKey(config.apiKey)) {
     return sendJSON(res, 503, { error: TEXT.keyMissing });
   }
 
@@ -191,7 +195,7 @@ async function handleChat(req, res) {
   const contextSize = Buffer.byteLength(JSON.stringify(businessContext), 'utf8');
   if (contextSize > MAX_CONTEXT_LENGTH) return sendJSON(res, 413, { error: TEXT.bigContext });
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
+  const providerUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions';
   const prompt = buildPrompt({
     message,
     businessContext,
@@ -199,36 +203,35 @@ async function handleChat(req, res) {
   });
 
   try {
-    const geminiResponse = await fetch(geminiUrl, {
+    const providerResponse = await fetch(providerUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+      },
       body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
-          }
+        model: config.model,
+        messages: [
+          { role: 'system', content: TEXT.systemPrompt },
+          { role: 'user', content: prompt }
         ],
-        generationConfig: {
-          temperature: 0.35,
-          topP: 0.9,
-          maxOutputTokens: 900
-        }
+        temperature: 0.35,
+        max_tokens: 900
       })
     });
 
-    const payload = await geminiResponse.json().catch(() => ({}));
-    if (!geminiResponse.ok) {
-      const classified = classifyGeminiError(geminiResponse.status, payload);
+    const payload = await providerResponse.json().catch(() => ({}));
+    if (!providerResponse.ok) {
+      const classified = classifyProviderError(providerResponse.status, payload);
       return sendJSON(res, classified.status, { error: classified.error });
     }
 
-    const reply = extractGeminiReply(payload);
+    const reply = extractProviderReply(payload);
     if (!reply) return sendJSON(res, 502, { error: TEXT.noReply });
     return sendJSON(res, 200, { reply });
   } catch (error) {
-    console.error('Gemini request failed:', error);
-    return sendJSON(res, 502, { error: TEXT.geminiError });
+    console.error('DeepSeek request failed:', error);
+    return sendJSON(res, 502, { error: TEXT.providerError });
   }
 }
 
