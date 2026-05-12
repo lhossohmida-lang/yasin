@@ -36,13 +36,13 @@ const MAX_HISTORY_ITEMS = 8;
 const MAX_ARRAY_ITEMS = 20;
 
 function normalizeModel(model) {
-  return String(model || 'tencent/hy3-preview:free').trim();
+  return String(model || 'tencent/hy3-preview').trim();
 }
 
 function getConfig() {
   return {
     apiKey: (process.env.OPENROUTER_API_KEY || '').trim(),
-    model: normalizeModel(process.env.OPENROUTER_MODEL || 'tencent/hy3-preview:free'),
+    model: normalizeModel(process.env.OPENROUTER_MODEL || 'tencent/hy3-preview'),
     providerUrl: process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions',
     siteUrl: process.env.OPENROUTER_SITE_URL || 'https://yasin1.vercel.app',
     appName: process.env.OPENROUTER_APP_NAME || 'Yasin Clothing Store'
@@ -146,6 +146,10 @@ function classifyProviderError(status, payload) {
 
   if (status === 429 || message.includes('quota') || message.includes('rate')) {
     return { status: 429, error: TEXT.quota };
+  }
+
+  if (status === 404 || message.includes('no longer available') || message.includes('not available')) {
+    return { status: 404, error: TEXT.balance };
   }
 
   if (
