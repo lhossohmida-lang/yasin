@@ -1618,6 +1618,68 @@ function buildOrderQRPayload(orderNumber) {
     return QR_ORDER_PREFIX + orderNumber;
 }
 
+// ============== مولّد QR متعدد المراحل (متين) ==============
+// يعيد كائن { el, dataUrl } — el إما <canvas> أو <img>.
+function renderQRToContainer(container, text, size = 220) {
+    container.innerHTML = '';
+
+    // 1) qrcode-generator (مكتبة محلية ذاتية الاحتواء)
+    if (typeof window.qrcode === 'function') {
+        try {
+            const qr = window.qrcode(0, 'M');
+            qr.addData(text);
+            qr.make();
+            const moduleCount = qr.getModuleCount();
+            const cellSize = Math.max(2, Math.floor(size / moduleCount));
+            const dataUrl = qr.createDataURL(cellSize, 0);
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.alt = 'QR';
+            img.style.width = size + 'px';
+            img.style.height = size + 'px';
+            img.style.imageRendering = 'pixelated';
+            container.appendChild(img);
+            return { el: img, dataUrl };
+        } catch (err) {
+            console.warn('qrcode-generator failed:', err);
+        }
+    }
+
+    // 2) node-qrcode (canvas API)
+    if (window.QRCode && typeof window.QRCode.toCanvas === 'function') {
+        try {
+            const canvas = document.createElement('canvas');
+            container.appendChild(canvas);
+            window.QRCode.toCanvas(canvas, text, { width: size, margin: 1, color: { dark: '#000', light: '#fff' } });
+            return { el: canvas, dataUrl: null };
+        } catch (err) {
+            console.warn('node-qrcode failed:', err);
+        }
+    }
+
+    // 3) قشرة آخر اللجوء: خدمة QR خارجية كصورة
+    const fallback = document.createElement('img');
+    fallback.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&margin=1`;
+    fallback.alt = 'QR';
+    fallback.style.width = size + 'px';
+    fallback.style.height = size + 'px';
+    fallback.addEventListener('error', () => {
+        container.innerHTML = '<div style="color:#888; padding:1rem; font-size:0.85rem;">تعذّر إنشاء رمز QR — تحقق من الاتصال أو حدّث الصفحة</div>';
+    });
+    container.appendChild(fallback);
+    return { el: fallback, dataUrl: fallback.src };
+}
+
+// يستخرج رابط بيانات الصورة من العنصر الناتج (canvas أو img)
+function getQRDataURL(el) {
+    if (!el) return null;
+    if (el.tagName === 'CANVAS') {
+        try { return el.toDataURL('image/png'); } catch (_) { return null; }
+    }
+    if (el.tagName === 'IMG') return el.src;
+    return null;
+}
+
 // ============== إظهار QR لمنتج ==============
 window.openProductQR = function(productId) {
     const product = inventory.find(p => p.id === productId);
@@ -1631,16 +1693,8 @@ window.openProductQR = function(productId) {
     document.getElementById('qr-label-code').innerText = payload;
 
     const container = document.getElementById('qr-label-canvas');
-    container.innerHTML = '';
-    const canvas = document.createElement('canvas');
-    container.appendChild(canvas);
-    if (window.QRCode && typeof QRCode.toCanvas === 'function') {
-        QRCode.toCanvas(canvas, payload, { width: 220, margin: 1, color: { dark: '#000', light: '#fff' } }, err => {
-            if (err) console.error('QR error:', err);
-        });
-    } else {
-        container.innerHTML = '<div style="color:#888; padding:1rem;">تعذر تحميل مكتبة QR</div>';
-    }
+    renderQRToContainer(container, payload, 220);
+
     document.getElementById('qr-label-modal').classList.add('show');
 };
 
@@ -1653,8 +1707,8 @@ window.printQRLabel = function() {
     if (!area) return;
     const w = window.open('', '_blank', 'width=480,height=600');
     if (!w) { window.print(); return; }
-    const canvas = area.querySelector('canvas');
-    const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+    const qrEl = area.querySelector('#qr-label-canvas canvas, #qr-label-canvas img');
+    const dataUrl = getQRDataURL(qrEl) || '';
     const storeName = document.getElementById('qr-label-store-name').innerText;
     const name = document.getElementById('qr-label-name').innerText;
     const price = document.getElementById('qr-label-price').innerText;
@@ -1686,12 +1740,13 @@ window.printQRLabel = function() {
 
 window.downloadQRImage = function() {
     const area = document.getElementById('qr-print-area');
-    const canvas = area && area.querySelector('canvas');
-    if (!canvas) return;
+    const qrEl = area && area.querySelector('#qr-label-canvas canvas, #qr-label-canvas img');
+    const dataUrl = getQRDataURL(qrEl);
+    if (!dataUrl) { alert('لا يمكن تنزيل الصورة الآن'); return; }
     const link = document.createElement('a');
     const name = document.getElementById('qr-label-name').innerText || 'product';
     link.download = `qr-${name}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.href = dataUrl;
     link.click();
 };
 
@@ -1854,15 +1909,13 @@ function injectOrderQRIntoDetail(order) {
     wrap.style.cssText = 'margin-top:1rem; padding:1rem; background:#fff; border-radius:0.6rem; text-align:center;';
     wrap.innerHTML = `
         <div style="font-size:0.85rem; color:#666; margin-bottom:0.5rem; font-weight:600;">رمز QR الخاص بالطلب</div>
-        <canvas id="order-qr-canvas"></canvas>
+        <div id="order-qr-wrap" style="display:flex; justify-content:center;"></div>
         <div style="font-size:0.75rem; color:#888; margin-top:0.5rem; word-break:break-all;">${payload}</div>
         <div style="font-size:0.75rem; color:#888; margin-top:0.3rem;">يستخدم الزبون هذا الرمز لاستلام طلبه</div>
     `;
     content.appendChild(wrap);
-    const canvas = wrap.querySelector('#order-qr-canvas');
-    if (window.QRCode && canvas) {
-        QRCode.toCanvas(canvas, payload, { width: 180, margin: 1 }, () => {});
-    }
+    const target = wrap.querySelector('#order-qr-wrap');
+    if (target) renderQRToContainer(target, payload, 180);
 }
 
 // Hook into openOrderDetail to add QR — patch after definition

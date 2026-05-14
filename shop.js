@@ -185,6 +185,56 @@ function isNewProduct(product) {
 function persistCart() { localStorage.setItem('sh_cart', JSON.stringify(cart)); }
 function persistWishlist() { localStorage.setItem('sh_wishlist', JSON.stringify(wishlist)); }
 
+// ============================ QR Renderer (multi-fallback) ============================
+function renderShopQR(container, text, size = 200) {
+    container.innerHTML = '';
+
+    // 1) qrcode-generator (self-contained)
+    if (typeof window.qrcode === 'function') {
+        try {
+            const qr = window.qrcode(0, 'M');
+            qr.addData(text);
+            qr.make();
+            const moduleCount = qr.getModuleCount();
+            const cellSize = Math.max(2, Math.floor(size / moduleCount));
+            const dataUrl = qr.createDataURL(cellSize, 0);
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.alt = 'QR';
+            img.style.width = size + 'px';
+            img.style.height = size + 'px';
+            img.style.imageRendering = 'pixelated';
+            container.appendChild(img);
+            return;
+        } catch (err) {
+            console.warn('qrcode-generator failed:', err);
+        }
+    }
+
+    // 2) node-qrcode
+    if (window.QRCode && typeof window.QRCode.toCanvas === 'function') {
+        try {
+            const canvas = document.createElement('canvas');
+            container.appendChild(canvas);
+            window.QRCode.toCanvas(canvas, text, { width: size, margin: 1, color: { dark: '#0A1024', light: '#FFFFFF' } });
+            return;
+        } catch (err) {
+            console.warn('node-qrcode failed:', err);
+        }
+    }
+
+    // 3) External API fallback
+    const img = document.createElement('img');
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&margin=1`;
+    img.alt = 'QR';
+    img.style.width = size + 'px';
+    img.style.height = size + 'px';
+    img.addEventListener('error', () => {
+        container.innerHTML = '<div style="color:#888;padding:1rem;font-size:0.85rem">تعذّر إنشاء الرمز — تحقق من الاتصال</div>';
+    });
+    container.appendChild(img);
+}
+
 // ============================ Toast ============================
 function toast(message, type = 'info') {
     const c = $('#sh-toast-container');
@@ -988,29 +1038,39 @@ function renderSuccess() {
             <div class="sh-summary-row"><span>عدد المنتجات</span><span>${data.items}</span></div>
             <div class="sh-summary-row sh-total"><span>الإجمالي</span><span>${fmtPrice(data.total)}</span></div>`;
 
-        // Render order QR
+        // Render order QR with fallback chain
         const payload = 'SH-O:' + data.orderNumber;
         $('#sh-order-qr-code').innerText = payload;
-        const canvas = $('#sh-order-qr-canvas');
-        if (canvas && window.QRCode && typeof QRCode.toCanvas === 'function') {
-            QRCode.toCanvas(canvas, payload, { width: 200, margin: 1, color: { dark: '#0A1024', light: '#FFFFFF' } }, err => {
-                if (err) console.error('QR error:', err);
-            });
+        const wrap = $('.sh-order-qr-canvas-wrap');
+        if (wrap) {
+            // Remove the static canvas; renderShopQR will inject the right element
+            wrap.innerHTML = '';
+            renderShopQR(wrap, payload, 200);
+        }
+
+        function currentQRDataUrl() {
+            const el = wrap && wrap.querySelector('canvas, img');
+            if (!el) return null;
+            if (el.tagName === 'CANVAS') {
+                try { return el.toDataURL('image/png'); } catch (_) { return null; }
+            }
+            return el.src || null;
         }
 
         $('#sh-qr-download').addEventListener('click', () => {
-            if (!canvas) return;
+            const dataUrl = currentQRDataUrl();
+            if (!dataUrl) return;
             const link = document.createElement('a');
             link.download = `${data.orderNumber}.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.href = dataUrl;
             link.click();
         });
 
         $('#sh-qr-print').addEventListener('click', () => {
-            if (!canvas) return;
+            const dataUrl = currentQRDataUrl();
+            if (!dataUrl) return;
             const w = window.open('', '_blank', 'width=480,height=620');
             if (!w) return;
-            const dataUrl = canvas.toDataURL('image/png');
             w.document.write(`
                 <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>QR الطلب</title>
                 <style>
