@@ -112,6 +112,7 @@
                 <a href="#" class="nav-item" data-target="section-expenses"><i class="fa-solid fa-file-invoice-dollar"></i> الخسائر والمصاريف</a>
                 <a href="#" class="nav-item" data-target="section-accounts"><i class="fa-solid fa-users-gear"></i> إدارة الحسابات</a>
                 <a href="#" class="nav-item" data-target="section-shop"><i class="fa-solid fa-store"></i> المتجر الإلكتروني</a>
+                <a href="#" class="nav-item" data-target="section-shipping"><i class="fa-solid fa-truck"></i> الشحن</a>
                 <a href="#" class="nav-item" data-target="section-ai"><i class="fa-solid fa-wand-magic-sparkles"></i> &#1575;&#1604;&#1584;&#1603;&#1575;&#1569; &#1575;&#1604;&#1575;&#1589;&#1591;&#1606;&#1575;&#1593;&#1610;</a>
             </nav>
             <div class="sidebar-bottom">
@@ -562,6 +563,26 @@
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+
+            <!-- قسم الشحن -->
+            <div id="section-shipping" class="page-section" style="display:none">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-truck"></i> إعدادات الشحن</h2>
+                    </div>
+                    <form id="shipping-settings-form" class="grid-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <p style="color:var(--text-secondary); margin-bottom:1rem;">قم بتحديد سعر الشحن لكل ولاية. سيتم تطبيق هذه الأسعار في المتجر الإلكتروني.</p>
+                        
+                        <div id="wilayas-shipping-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+                            <!-- Wilayas injected by JS -->
+                        </div>
+                        
+                        <div class="form-group" style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                            <button type="submit" class="btn btn-primary" style="height:45px;"><i class="fa-solid fa-save"></i> حفظ إعدادات الشحن</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 

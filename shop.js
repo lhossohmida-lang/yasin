@@ -24,6 +24,13 @@ let customer = JSON.parse(localStorage.getItem('sh_customer') || 'null');
 let appliedPromo = null;
 let heroSlideIndex = 0;
 let heroInterval = null;
+let storeShippingSettings = {};
+
+db.collection('store').doc('shipping').onSnapshot(doc => {
+    if (doc.exists) {
+        storeShippingSettings = doc.data() || {};
+    }
+}, err => console.error('Shipping load failed:', err));
 
 // ============================ Constants ============================
 const FREE_SHIPPING_THRESHOLD = 299;
@@ -656,7 +663,7 @@ function renderProduct(id) {
     });
 
     $('#sh-product-meta').innerHTML = `
-        <div><i class="fa-solid fa-truck-fast"></i> شحن مجاني للطلبات فوق ${FREE_SHIPPING_THRESHOLD} د.ج</div>
+        <div><i class="fa-solid fa-truck-fast"></i> شحن سريع ومتوفر لجميع الولايات</div>
         <div><i class="fa-solid fa-arrow-rotate-left"></i> إرجاع مجاني خلال 14 يوم</div>
         <div><i class="fa-solid fa-shield-halved"></i> دفع آمن عند الاستلام</div>
         <div><i class="fa-solid fa-box-open"></i> الكمية المتوفرة: ${inStock ? safeNum(product.qty) : 'غير متوفر'}</div>`;
@@ -743,8 +750,18 @@ function cartDiscount() {
 
 function cartShipping() {
     if (!cart.length) return 0;
-    const sub = cartSubtotal();
-    return sub >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+    let currentWilaya = null;
+    const wilSel = document.getElementById('co-wilaya');
+    if (wilSel && wilSel.value) {
+        currentWilaya = wilSel.value;
+    } else if (customer && customer.wilaya) {
+        currentWilaya = customer.wilaya;
+    }
+    
+    if (currentWilaya && storeShippingSettings[currentWilaya] !== undefined) {
+        return Number(storeShippingSettings[currentWilaya]);
+    }
+    return 600; // Default fallback
 }
 
 function cartTotal() {
@@ -819,8 +836,7 @@ function renderSummaryInto(container, showCheckout) {
         <h3><i class="fa-solid fa-receipt"></i> ملخص الطلب</h3>
         <div class="sh-summary-row"><span>المجموع الفرعي</span><span>${fmtPrice(sub)}</span></div>
         ${disc ? `<div class="sh-summary-row"><span>الخصم (${appliedPromo.label})</span><span style="color:var(--sh-success)">- ${fmtPrice(disc)}</span></div>` : ''}
-        <div class="sh-summary-row"><span>الشحن</span><span>${ship === 0 ? '<span style="color:var(--sh-success)">مجاني</span>' : fmtPrice(ship)}</span></div>
-        ${ship > 0 ? `<div style="color:var(--sh-text-3);font-size:.8rem;margin-bottom:.5rem">أضف ${fmtPrice(FREE_SHIPPING_THRESHOLD - sub)} للحصول على شحن مجاني</div>` : ''}
+        <div class="sh-summary-row"><span>الشحن</span><span>${fmtPrice(ship)}</span></div>
         <div class="sh-summary-row sh-total"><span>الإجمالي</span><span>${fmtPrice(cartTotal())}</span></div>
         ${showCheckout ? `<a href="#/checkout" class="sh-btn sh-btn-primary sh-btn-block" style="margin-top:1rem">إتمام الطلب <i class="fa-solid fa-arrow-left"></i></a>` : ''}
         <a href="#/category/all" class="sh-btn sh-btn-ghost sh-btn-block" style="margin-top:.6rem">متابعة التسوق</a>`;
@@ -884,6 +900,10 @@ function renderCheckout() {
         $('#co-address').value = customer.address || '';
     }
 
+    wilSel.addEventListener('change', () => {
+        renderCheckoutSummary();
+    });
+
     renderCheckoutSummary();
 
     $('#co-apply-promo').addEventListener('click', () => {
@@ -926,7 +946,7 @@ function renderCheckoutSummary() {
         <div class="sh-co-items">${itemsHtml}</div>
         <div class="sh-summary-row"><span>المجموع الفرعي</span><span>${fmtPrice(sub)}</span></div>
         ${disc ? `<div class="sh-summary-row"><span>الخصم</span><span style="color:var(--sh-success)">- ${fmtPrice(disc)}</span></div>` : ''}
-        <div class="sh-summary-row"><span>الشحن</span><span>${ship === 0 ? '<span style="color:var(--sh-success)">مجاني</span>' : fmtPrice(ship)}</span></div>
+        <div class="sh-summary-row"><span>الشحن</span><span>${fmtPrice(ship)}</span></div>
         <div class="sh-summary-row sh-total"><span>الإجمالي</span><span>${fmtPrice(cartTotal())}</span></div>
         <button type="button" class="sh-btn sh-btn-primary sh-btn-block" style="margin-top:1rem" id="sh-submit-order">
             <i class="fa-solid fa-check"></i> تأكيد الطلب
@@ -965,34 +985,42 @@ async function submitOrder() {
     try {
         const orderNumber = genOrderNumber();
         const order = {
-            orderNumber,
-            customerName: name,
-            phone,
-            wilaya,
-            baladiya,
-            address,
-            notes,
+            orderNumber: String(orderNumber || ''),
+            customerName: String(name || ''),
+            phone: String(phone || ''),
+            wilaya: String(wilaya || ''),
+            baladiya: String(baladiya || ''),
+            address: String(address || ''),
+            notes: String(notes || ''),
             items: cart.map(item => ({
-                productId: item.productId,
-                name: item.name,
-                qty: item.qty,
-                size: item.size || '',
-                colorName: item.color?.name || '',
-                colorHex: item.color?.hex || '',
-                sellPrice: item.sellPrice,
-                buyPrice: item.buyPrice,
-                image: item.image
+                productId: String(item.productId || ''),
+                name: String(item.name || ''),
+                qty: Number(item.qty || 1),
+                size: String(item.size || ''),
+                colorName: String(item.color?.name || ''),
+                colorHex: String(item.color?.hex || ''),
+                sellPrice: Number(item.sellPrice || 0),
+                buyPrice: Number(item.buyPrice || 0),
+                image: String(item.image || '')
             })),
-            subtotal: cartSubtotal(),
-            discount: cartDiscount(),
-            promoCode: appliedPromo?.code || null,
-            shipping: cartShipping(),
-            totalPrice: cartTotal(),
+            subtotal: Number(cartSubtotal() || 0),
+            discount: Number(cartDiscount() || 0),
+            promoCode: appliedPromo && appliedPromo.code ? String(appliedPromo.code) : null,
+            shipping: Number(cartShipping() || 0),
+            totalPrice: Number(cartTotal() || 0),
             paymentMethod: 'cod',
             status: 'new',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
+        
+        // Remove undefined properties just in case
+        Object.keys(order).forEach(key => {
+            if (order[key] === undefined) {
+                order[key] = null;
+            }
+        });
+
         const docRef = await db.collection('online_orders').add(order);
 
         customer = { name, phone, wilaya, baladiya, address };
@@ -1014,7 +1042,11 @@ async function submitOrder() {
         navigate('/success');
     } catch (err) {
         console.error('Order submit failed:', err);
-        toast('حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى', 'error');
+        if (err.message && err.message.includes('permission')) {
+            toast('عذراً، هناك مشكلة في صلاحيات الخادم', 'error');
+        } else {
+            toast('حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى', 'error');
+        }
     } finally {
         showLoading(false);
     }

@@ -2099,4 +2099,74 @@ window.openOrderDetail = function(orderId) {
     }, delay));
 })();
 
+// ================== إعدادات الشحن ==================
+const WILAYAS_LIST = [
+    '01 - أدرار','02 - الشلف','03 - الأغواط','04 - أم البواقي','05 - باتنة',
+    '06 - بجاية','07 - بسكرة','08 - بشار','09 - البليدة','10 - البويرة',
+    '11 - تمنراست','12 - تبسة','13 - تلمسان','14 - تيارت','15 - تيزي وزو',
+    '16 - الجزائر','17 - الجلفة','18 - جيجل','19 - سطيف','20 - سعيدة',
+    '21 - سكيكدة','22 - سيدي بلعباس','23 - عنابة','24 - قالمة','25 - قسنطينة',
+    '26 - المدية','27 - مستغانم','28 - المسيلة','29 - معسكر','30 - ورقلة',
+    '31 - وهران','32 - البيض','33 - إليزي','34 - برج بوعريريج','35 - بومرداس',
+    '36 - الطارف','37 - تندوف','38 - تيسمسيلت','39 - الوادي','40 - خنشلة',
+    '41 - سوق أهراس','42 - تيبازة','43 - ميلة','44 - عين الدفلى','45 - النعامة',
+    '46 - عين تموشنت','47 - غرداية','48 - غليزان'
+];
 
+let shippingSettings = {};
+
+function renderShippingForm() {
+    const container = document.getElementById('wilayas-shipping-container');
+    if (!container) return;
+    container.innerHTML = '';
+    WILAYAS_LIST.forEach(wilaya => {
+        const val = shippingSettings[wilaya] !== undefined ? shippingSettings[wilaya] : 600;
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.innerHTML = `
+            <label>${wilaya}</label>
+            <input type="number" min="0" class="wilaya-shipping-input" data-wilaya="${wilaya}" value="${val}" required placeholder="سعر الشحن (د.ج)">
+        `;
+        container.appendChild(div);
+    });
+}
+
+db.collection('store').doc('shipping').onSnapshot(doc => {
+    if (doc.exists) {
+        shippingSettings = doc.data() || {};
+    } else {
+        shippingSettings = {};
+    }
+    renderShippingForm();
+});
+
+const shippingForm = document.getElementById('shipping-settings-form');
+if (shippingForm) {
+    shippingForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const inputs = document.querySelectorAll('.wilaya-shipping-input');
+        const newSettings = {};
+        inputs.forEach(input => {
+            newSettings[input.dataset.wilaya] = Number(input.value) || 0;
+        });
+        
+        try {
+            const btn = shippingForm.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+            btn.disabled = true;
+            
+            await db.collection('store').doc('shipping').set(newSettings);
+            
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> تم الحفظ';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 2000);
+        } catch (err) {
+            console.error(err);
+            alert("حدث خطأ أثناء حفظ الإعدادات!");
+            shippingForm.querySelector('button[type="submit"]').disabled = false;
+        }
+    });
+}
