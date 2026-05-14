@@ -106,6 +106,9 @@ function renderInventoryCards() {
                 </div>
             </div>
             <div class="product-actions">
+                <button class="btn-qr-card" onclick="openProductQR('${item.id}')">
+                    <i class="fa-solid fa-qrcode"></i> QR
+                </button>
                 <button class="btn-delete-card" onclick="deleteProduct('${item.id}')">
                     <i class="fa-solid fa-trash"></i> حذف
                 </button>
@@ -121,13 +124,17 @@ function renderInventoryCards() {
 document.getElementById('add-product-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     try {
-        await db.collection("inventory").add({
+        const docRef = await db.collection("inventory").add({
             name: document.getElementById('inv-name').value,
             qty: parseInt(document.getElementById('inv-quantity').value),
             buyPrice: parseFloat(document.getElementById('inv-buy').value),
-            sellPrice: parseFloat(document.getElementById('inv-sell').value)
+            sellPrice: parseFloat(document.getElementById('inv-sell').value),
+            showInShop: true,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         this.reset();
+        // Show QR label automatically for the newly added product
+        setTimeout(() => openProductQR(docRef.id), 350);
     } catch (err) {
         alert("حدث خطأ أثناء الإضافة.");
     }
@@ -1584,4 +1591,316 @@ if (btnSeedDemo) {
 
 // If admin is already logged in via session restore
 if (currentRole === 'admin') startOnlineOrdersListener();
+
+// =====================================================
+// نظام رموز QR
+// =====================================================
+const QR_PRODUCT_PREFIX = 'SH-P:';
+const QR_ORDER_PREFIX = 'SH-O:';
+
+// تطبيع أي نص يمسحه الماسح إلى نوع + معرف
+function parseQRPayload(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return null;
+    if (text.startsWith(QR_PRODUCT_PREFIX)) return { type: 'product', id: text.slice(QR_PRODUCT_PREFIX.length) };
+    if (text.startsWith(QR_ORDER_PREFIX)) return { type: 'order', code: text.slice(QR_ORDER_PREFIX.length) };
+    // Fallback: نص خام = جرّب كمعرف منتج ثم كرقم طلب
+    if (inventory.some(p => p.id === text)) return { type: 'product', id: text };
+    if (onlineOrders.some(o => o.orderNumber === text || o.id === text)) return { type: 'order', code: text };
+    return { type: 'unknown', value: text };
+}
+
+function buildProductQRPayload(productId) {
+    return QR_PRODUCT_PREFIX + productId;
+}
+
+function buildOrderQRPayload(orderNumber) {
+    return QR_ORDER_PREFIX + orderNumber;
+}
+
+// ============== إظهار QR لمنتج ==============
+window.openProductQR = function(productId) {
+    const product = inventory.find(p => p.id === productId);
+    if (!product) { alert('المنتج غير موجود'); return; }
+    const payload = buildProductQRPayload(productId);
+    const storeName = (storeData && storeData.name) || 'أناقة للرجال';
+
+    document.getElementById('qr-label-store-name').innerText = storeName;
+    document.getElementById('qr-label-name').innerText = product.name;
+    document.getElementById('qr-label-price').innerText = (Number(product.sellPrice) || 0).toLocaleString('ar-DZ') + ' د.ج';
+    document.getElementById('qr-label-code').innerText = payload;
+
+    const container = document.getElementById('qr-label-canvas');
+    container.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    if (window.QRCode && typeof QRCode.toCanvas === 'function') {
+        QRCode.toCanvas(canvas, payload, { width: 220, margin: 1, color: { dark: '#000', light: '#fff' } }, err => {
+            if (err) console.error('QR error:', err);
+        });
+    } else {
+        container.innerHTML = '<div style="color:#888; padding:1rem;">تعذر تحميل مكتبة QR</div>';
+    }
+    document.getElementById('qr-label-modal').classList.add('show');
+};
+
+window.closeQRLabel = function() {
+    document.getElementById('qr-label-modal').classList.remove('show');
+};
+
+window.printQRLabel = function() {
+    const area = document.getElementById('qr-print-area');
+    if (!area) return;
+    const w = window.open('', '_blank', 'width=480,height=600');
+    if (!w) { window.print(); return; }
+    const canvas = area.querySelector('canvas');
+    const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+    const storeName = document.getElementById('qr-label-store-name').innerText;
+    const name = document.getElementById('qr-label-name').innerText;
+    const price = document.getElementById('qr-label-price').innerText;
+    const code = document.getElementById('qr-label-code').innerText;
+    w.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>طباعة QR</title>
+        <style>
+            body { font-family: 'Cairo', Arial, sans-serif; display:flex; align-items:center; justify-content:center; min-height: 100vh; margin:0; }
+            .lbl { text-align:center; border: 1px dashed #999; padding: 1rem 1.5rem; border-radius: 8px; max-width: 320px; }
+            .lbl .s { font-size: 0.8rem; color:#666; margin-bottom: .5rem; }
+            .lbl img { width: 200px; height: 200px; }
+            .lbl .n { font-size: 1.1rem; font-weight: 700; margin-top: .5rem; }
+            .lbl .p { font-size: 0.95rem; color:#444; margin-top: .25rem; }
+            .lbl .c { font-size: 0.7rem; color:#999; margin-top: .5rem; word-break: break-all; }
+            @media print { .lbl { border:none; } }
+        </style></head>
+        <body><div class="lbl">
+            <div class="s">${storeName}</div>
+            <img src="${dataUrl}" alt="QR">
+            <div class="n">${name}</div>
+            <div class="p">${price}</div>
+            <div class="c">${code}</div>
+        </div>
+        <script>window.onload=function(){setTimeout(function(){window.print();window.close();},200);};<\/script>
+        </body></html>`);
+    w.document.close();
+};
+
+window.downloadQRImage = function() {
+    const area = document.getElementById('qr-print-area');
+    const canvas = area && area.querySelector('canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    const name = document.getElementById('qr-label-name').innerText || 'product';
+    link.download = `qr-${name}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+};
+
+// ============== ماسح QR بالكاميرا ==============
+let html5QrScanner = null;
+let qrScannerContext = 'pos'; // 'pos' | 'order'
+let qrScanCooldown = false;
+
+window.openQRScanner = function(context = 'pos') {
+    qrScannerContext = context;
+    const modal = document.getElementById('qr-scanner-modal');
+    const status = document.getElementById('qr-scan-status');
+    status.innerText = 'يجري تشغيل الكاميرا...';
+    status.style.color = 'var(--text-secondary)';
+    modal.classList.add('show');
+
+    if (!window.Html5Qrcode) {
+        status.innerText = 'تعذر تحميل مكتبة الماسح. تحقق من اتصال الإنترنت.';
+        status.style.color = 'var(--danger)';
+        return;
+    }
+
+    if (html5QrScanner) {
+        try { html5QrScanner.stop().catch(() => {}); } catch (_) {}
+        html5QrScanner = null;
+    }
+
+    html5QrScanner = new Html5Qrcode('qr-reader');
+    const config = {
+        fps: 12,
+        qrbox: { width: 230, height: 230 },
+        aspectRatio: 1.0
+    };
+
+    html5QrScanner.start(
+        { facingMode: 'environment' },
+        config,
+        (decodedText) => {
+            if (qrScanCooldown) return;
+            qrScanCooldown = true;
+            setTimeout(() => { qrScanCooldown = false; }, 1500);
+            handleScannedQR(decodedText);
+        },
+        () => {}
+    ).then(() => {
+        status.innerText = 'وجّه الكاميرا نحو رمز QR...';
+    }).catch(err => {
+        console.error('QR scanner start failed:', err);
+        status.innerText = 'تعذر فتح الكاميرا. تأكد من منح الصلاحيات.';
+        status.style.color = 'var(--danger)';
+    });
+};
+
+window.closeQRScanner = function() {
+    if (html5QrScanner) {
+        try { html5QrScanner.stop().then(() => html5QrScanner.clear()).catch(() => {}); } catch (_) {}
+        html5QrScanner = null;
+    }
+    document.getElementById('qr-scanner-modal').classList.remove('show');
+};
+
+function flashScanStatus(message, ok = true) {
+    const status = document.getElementById('qr-scan-status');
+    if (!status) return;
+    status.innerText = message;
+    status.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    setTimeout(() => {
+        status.style.color = 'var(--text-secondary)';
+        status.innerText = 'وجّه الكاميرا نحو رمز QR...';
+    }, 1800);
+}
+
+function handleScannedQR(raw) {
+    const parsed = parseQRPayload(raw);
+    if (!parsed) {
+        flashScanStatus('رمز غير صالح', false);
+        return;
+    }
+
+    if (qrScannerContext === 'pos') {
+        if (parsed.type !== 'product') {
+            flashScanStatus('هذا الرمز ليس رمز منتج', false);
+            return;
+        }
+        const product = inventory.find(p => p.id === parsed.id);
+        if (!product) {
+            flashScanStatus('المنتج غير موجود في المخزون', false);
+            return;
+        }
+        if ((Number(product.qty) || 0) <= 0) {
+            flashScanStatus(`${product.name} — غير متوفر`, false);
+            return;
+        }
+        addToCart(product.id);
+        flashScanStatus(`✓ تمت إضافة "${product.name}"`, true);
+        return;
+    }
+
+    if (qrScannerContext === 'order') {
+        if (parsed.type !== 'order') {
+            flashScanStatus('هذا الرمز ليس رمز طلب', false);
+            return;
+        }
+        const order = onlineOrders.find(o => o.orderNumber === parsed.code || o.id === parsed.code);
+        if (!order) {
+            flashScanStatus('الطلب غير موجود', false);
+            return;
+        }
+        flashScanStatus(`✓ طلب ${order.orderNumber}`, true);
+        setTimeout(() => {
+            closeQRScanner();
+            openOrderDetail(order.id);
+        }, 600);
+        return;
+    }
+}
+
+// ============== مسح بجهاز QR خارجي (لوحة مفاتيح USB) ==============
+// أجهزة المسح اليدوي تعمل كلوحة مفاتيح: تكتب النص ثم Enter سريعًا.
+(function setupHardwareScanner() {
+    let buffer = '';
+    let lastKeyTime = Date.now();
+    const RESET_AFTER_MS = 50; // إعادة ضبط بين الضغطات لتجنب التقاط كتابة عادية
+
+    document.addEventListener('keydown', (e) => {
+        // تجاهل الإدخال داخل الحقول العادية (إلا حقل بحث POS)
+        const active = document.activeElement;
+        const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+        const isPosSearch = active && active.id === 'pos-search';
+        if (isInput && !isPosSearch) return;
+
+        const now = Date.now();
+        if (now - lastKeyTime > RESET_AFTER_MS && e.key !== 'Enter') buffer = '';
+        lastKeyTime = now;
+
+        if (e.key === 'Enter') {
+            if (buffer.length >= 4) {
+                e.preventDefault();
+                // POS context عند فتح صفحة البيع، وإلا order context
+                const onPOS = document.getElementById('section-sales')?.style.display !== 'none';
+                qrScannerContext = onPOS ? 'pos' : 'order';
+                handleScannedQR(buffer);
+                if (isPosSearch) active.value = '';
+            }
+            buffer = '';
+            return;
+        }
+
+        if (e.key.length === 1) buffer += e.key;
+        if (buffer.length > 120) buffer = buffer.slice(-120);
+    });
+})();
+
+// ============== QR للطلب الأونلاين (للمدير: عرض + مسح للاستلام) ==============
+function injectOrderQRIntoDetail(order) {
+    const content = document.getElementById('order-detail-content');
+    if (!content) return;
+    const payload = buildOrderQRPayload(order.orderNumber || order.id);
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-top:1rem; padding:1rem; background:#fff; border-radius:0.6rem; text-align:center;';
+    wrap.innerHTML = `
+        <div style="font-size:0.85rem; color:#666; margin-bottom:0.5rem; font-weight:600;">رمز QR الخاص بالطلب</div>
+        <canvas id="order-qr-canvas"></canvas>
+        <div style="font-size:0.75rem; color:#888; margin-top:0.5rem; word-break:break-all;">${payload}</div>
+        <div style="font-size:0.75rem; color:#888; margin-top:0.3rem;">يستخدم الزبون هذا الرمز لاستلام طلبه</div>
+    `;
+    content.appendChild(wrap);
+    const canvas = wrap.querySelector('#order-qr-canvas');
+    if (window.QRCode && canvas) {
+        QRCode.toCanvas(canvas, payload, { width: 180, margin: 1 }, () => {});
+    }
+}
+
+// Hook into openOrderDetail to add QR — patch after definition
+const _origOpenOrderDetail = window.openOrderDetail;
+window.openOrderDetail = function(orderId) {
+    _origOpenOrderDetail(orderId);
+    const order = onlineOrders.find(o => o.id === orderId);
+    if (order) injectOrderQRIntoDetail(order);
+
+    // Add a "scan order QR" shortcut button in actions
+    const actions = document.getElementById('order-detail-actions');
+    if (actions && !document.getElementById('btn-scan-order-qr')) {
+        const btn = document.createElement('button');
+        btn.id = 'btn-scan-order-qr';
+        btn.className = 'btn btn-primary';
+        btn.style.cssText = 'width:auto; padding:0.6rem 1rem; background:#1F2937;';
+        btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> مسح QR للاستلام';
+        btn.onclick = () => { closeOrderDetail(); openQRScanner('order'); };
+        actions.insertBefore(btn, actions.firstChild);
+    }
+};
+
+// زر مستقل لفتح ماسح QR من قسم الطلبات
+(function addOrderQRScanButton() {
+    const tries = [0, 200, 800, 1500];
+    tries.forEach(delay => setTimeout(() => {
+        const panel = document.querySelector('#section-shop .panel-header h2');
+        if (panel && !document.getElementById('btn-order-scan-header')) {
+            const wrap = panel.parentElement;
+            const btn = document.createElement('button');
+            btn.id = 'btn-order-scan-header';
+            btn.className = 'btn btn-primary';
+            btn.style.cssText = 'width:auto; padding:0.55rem 1rem; margin-right:auto;';
+            btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> مسح QR طلب';
+            btn.onclick = () => openQRScanner('order');
+            wrap.appendChild(btn);
+        }
+    }, delay));
+})();
+
 

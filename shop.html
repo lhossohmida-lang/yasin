@@ -12,6 +12,9 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+    <!-- QR Code generator (multi-fallback) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
     <!-- ============================ Top Navbar (Desktop) ============================ -->
@@ -350,6 +353,18 @@
                 <div class="sh-success-icon"><i class="fa-solid fa-check"></i></div>
                 <h1>تم استلام طلبك بنجاح!</h1>
                 <p>شكرًا لك على ثقتك بـ StyleHub، سنتواصل معك قريبًا لتأكيد الطلب.</p>
+
+                <div class="sh-order-qr-card" id="sh-order-qr-card">
+                    <div class="sh-order-qr-title"><i class="fa-solid fa-qrcode"></i> رمز استلام الطلب</div>
+                    <div class="sh-order-qr-canvas-wrap"><canvas id="sh-order-qr-canvas"></canvas></div>
+                    <div class="sh-order-qr-code" id="sh-order-qr-code">—</div>
+                    <p class="sh-order-qr-hint">احتفظ بهذا الرمز — قدّمه عند استلام طلبك ليتم التحقق منه.</p>
+                    <div style="display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin-top:.5rem;">
+                        <button class="sh-btn sh-btn-ghost" id="sh-qr-download"><i class="fa-solid fa-download"></i> تحميل</button>
+                        <button class="sh-btn sh-btn-ghost" id="sh-qr-print"><i class="fa-solid fa-print"></i> طباعة</button>
+                    </div>
+                </div>
+
                 <div class="sh-success-order" id="sh-success-order"></div>
                 <div class="sh-success-actions">
                     <a href="#/" class="sh-btn sh-btn-primary">العودة للصفحة الرئيسية</a>

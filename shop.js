@@ -977,6 +977,8 @@ function renderSuccess() {
 
     const data = JSON.parse(sessionStorage.getItem('sh_last_order') || 'null');
     const box = $('#sh-success-order');
+    const qrCard = $('#sh-order-qr-card');
+
     if (data) {
         box.innerHTML = `
             <div class="sh-summary-row"><span>رقم الطلب</span><b>${escapeHtml(data.orderNumber)}</b></div>
@@ -985,8 +987,54 @@ function renderSuccess() {
             <div class="sh-summary-row"><span>العنوان</span><span style="text-align:left">${escapeHtml(data.address)}</span></div>
             <div class="sh-summary-row"><span>عدد المنتجات</span><span>${data.items}</span></div>
             <div class="sh-summary-row sh-total"><span>الإجمالي</span><span>${fmtPrice(data.total)}</span></div>`;
+
+        // Render order QR
+        const payload = 'SH-O:' + data.orderNumber;
+        $('#sh-order-qr-code').innerText = payload;
+        const canvas = $('#sh-order-qr-canvas');
+        if (canvas && window.QRCode && typeof QRCode.toCanvas === 'function') {
+            QRCode.toCanvas(canvas, payload, { width: 200, margin: 1, color: { dark: '#0A1024', light: '#FFFFFF' } }, err => {
+                if (err) console.error('QR error:', err);
+            });
+        }
+
+        $('#sh-qr-download').addEventListener('click', () => {
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.download = `${data.orderNumber}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        $('#sh-qr-print').addEventListener('click', () => {
+            if (!canvas) return;
+            const w = window.open('', '_blank', 'width=480,height=620');
+            if (!w) return;
+            const dataUrl = canvas.toDataURL('image/png');
+            w.document.write(`
+                <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>QR الطلب</title>
+                <style>
+                    body { font-family: 'Cairo', Arial, sans-serif; margin:0; padding:2rem; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+                    .box { text-align:center; max-width:340px; border:1px dashed #999; padding:1.5rem; border-radius:10px; }
+                    .box .t { font-size:0.9rem; color:#666; margin-bottom:.5rem; }
+                    .box img { width:220px; height:220px; }
+                    .box .n { font-weight:700; margin-top:.7rem; font-family:monospace; word-break:break-all; }
+                    .box .h { font-size:0.8rem; color:#666; margin-top:.5rem; }
+                    @media print { .box { border:none; } }
+                </style></head><body>
+                <div class="box">
+                    <div class="t">StyleHub — رمز استلام الطلب</div>
+                    <img src="${dataUrl}" alt="QR">
+                    <div class="n">${payload}</div>
+                    <div class="h">قدّم هذا الرمز عند الاستلام</div>
+                </div>
+                <script>window.onload=function(){setTimeout(function(){window.print();window.close();},200);};<\/script>
+                </body></html>`);
+            w.document.close();
+        });
     } else {
-        box.style.display = 'none';
+        if (box) box.style.display = 'none';
+        if (qrCard) qrCard.style.display = 'none';
     }
 }
 
