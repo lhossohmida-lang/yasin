@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anaka-store-v10';
+const CACHE_NAME = 'anaka-store-v11';
 const urlsToCache = [
   './',
   './index.html',

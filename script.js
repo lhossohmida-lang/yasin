@@ -1,3 +1,146 @@
+// ============================================================
+// نظام QR — يُعرَّف مبكراً ليكون متاحاً للضغطات الموجهة من الصفحة
+// ============================================================
+
+// مولّد QR متعدد المراحل (متين تجاه فشل CDN)
+function renderQRToContainer(container, text, size) {
+    if (!container) return null;
+    size = size || 220;
+    container.innerHTML = '';
+
+    // 1) qrcode-generator (مكتبة محلية ذاتية الاحتواء)
+    if (typeof window.qrcode === 'function') {
+        try {
+            const qr = window.qrcode(0, 'M');
+            qr.addData(text);
+            qr.make();
+            const moduleCount = qr.getModuleCount();
+            const cellSize = Math.max(2, Math.floor(size / moduleCount));
+            const dataUrl = qr.createDataURL(cellSize, 0);
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.alt = 'QR';
+            img.style.width = size + 'px';
+            img.style.height = size + 'px';
+            img.style.imageRendering = 'pixelated';
+            container.appendChild(img);
+            return { el: img, dataUrl };
+        } catch (err) {
+            console.warn('qrcode-generator failed:', err);
+        }
+    }
+
+    // 2) node-qrcode (canvas API)
+    if (window.QRCode && typeof window.QRCode.toCanvas === 'function') {
+        try {
+            const canvas = document.createElement('canvas');
+            container.appendChild(canvas);
+            window.QRCode.toCanvas(canvas, text, { width: size, margin: 1, color: { dark: '#000', light: '#fff' } });
+            return { el: canvas, dataUrl: null };
+        } catch (err) {
+            console.warn('node-qrcode failed:', err);
+        }
+    }
+
+    // 3) قشرة آخر اللجوء: خدمة QR خارجية كصورة
+    const fallback = document.createElement('img');
+    fallback.src = 'https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size + '&data=' + encodeURIComponent(text) + '&margin=1';
+    fallback.alt = 'QR';
+    fallback.style.width = size + 'px';
+    fallback.style.height = size + 'px';
+    fallback.addEventListener('error', () => {
+        container.innerHTML = '<div style="color:#888;padding:1rem;font-size:0.85rem;">تعذّر إنشاء رمز QR — تحقق من الاتصال</div>';
+    });
+    container.appendChild(fallback);
+    return { el: fallback, dataUrl: fallback.src };
+}
+
+function getQRDataURL(el) {
+    if (!el) return null;
+    if (el.tagName === 'CANVAS') {
+        try { return el.toDataURL('image/png'); } catch (_) { return null; }
+    }
+    if (el.tagName === 'IMG') return el.src;
+    return null;
+}
+
+// إنشاء نافذة QR ديناميكياً إذا لم تكن موجودة في HTML (احتياط للكاش القديم)
+function ensureQRLabelModal() {
+    if (document.getElementById('qr-label-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'qr-label-modal';
+    modal.className = 'modal';
+    modal.innerHTML = ''
+        + '<div class="modal-content" style="width:380px;">'
+        +   '<div id="qr-print-area" style="background:#fff; padding:1.5rem;">'
+        +     '<div class="qr-label-printable">'
+        +       '<div class="qr-label-store" id="qr-label-store-name">أناقة للرجال</div>'
+        +       '<div id="qr-label-canvas"></div>'
+        +       '<div class="qr-label-name" id="qr-label-name">—</div>'
+        +       '<div class="qr-label-price" id="qr-label-price">—</div>'
+        +       '<div style="font-size:0.7rem;color:#888;margin-top:0.6rem;word-break:break-all;" id="qr-label-code">—</div>'
+        +     '</div>'
+        +   '</div>'
+        +   '<div class="modal-actions no-print">'
+        +     '<button class="btn btn-primary" onclick="printQRLabel()"><i class="fa-solid fa-print"></i> طباعة</button>'
+        +     '<button class="btn btn-primary" style="background:#374151;" onclick="downloadQRImage()"><i class="fa-solid fa-download"></i> تحميل صورة</button>'
+        +     '<button class="btn btn-danger" onclick="closeQRLabel()">إغلاق</button>'
+        +   '</div>'
+        + '</div>';
+    document.body.appendChild(modal);
+}
+
+function ensureQRScannerModal() {
+    if (document.getElementById('qr-scanner-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'qr-scanner-modal';
+    modal.className = 'modal';
+    modal.innerHTML = ''
+        + '<div class="modal-content qr-scanner-content">'
+        +   '<div style="padding:1.5rem; background:var(--bg-surface);">'
+        +     '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border-color);">'
+        +       '<h2 style="font-size:1.15rem;"><i class="fa-solid fa-qrcode"></i> مسح رمز QR</h2>'
+        +       '<button onclick="closeQRScanner()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>'
+        +     '</div>'
+        +     '<div id="qr-reader"></div>'
+        +     '<div class="qr-scan-status" id="qr-scan-status">وجّه الكاميرا نحو رمز QR...</div>'
+        +   '</div>'
+        + '</div>';
+    document.body.appendChild(modal);
+}
+
+// مُعرَّف مبكر بحيث لا يكسره أي خطأ لاحق
+window.openProductQR = function(productId) {
+    try {
+        ensureQRLabelModal();
+        const product = (typeof inventory !== 'undefined' ? inventory : []).find(p => p.id === productId);
+        if (!product) { alert('المنتج غير موجود'); return; }
+        const payload = 'SH-P:' + productId;
+        const storeName = (typeof storeData !== 'undefined' && storeData && storeData.name) || 'أناقة للرجال';
+
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
+        setText('qr-label-store-name', storeName);
+        setText('qr-label-name', product.name);
+        setText('qr-label-price', (Number(product.sellPrice) || 0).toLocaleString('ar-DZ') + ' د.ج');
+        setText('qr-label-code', payload);
+
+        const container = document.getElementById('qr-label-canvas');
+        if (container) renderQRToContainer(container, payload, 220);
+
+        const modal = document.getElementById('qr-label-modal');
+        if (modal) modal.classList.add('show');
+        else alert('تعذّر فتح نافذة QR — حدّث الصفحة (Ctrl+Shift+R)');
+    } catch (err) {
+        console.error('openProductQR error:', err);
+        alert('حدث خطأ أثناء عرض رمز QR: ' + err.message);
+    }
+};
+
+window.closeQRLabel = function() {
+    const m = document.getElementById('qr-label-modal');
+    if (m) m.classList.remove('show');
+};
+
 // ================== Firebase ==================
 const firebaseConfig = {
     apiKey: "AIzaSyAZwrvW6goAs7SjMPmksXWiU1x57r4UbwU",
