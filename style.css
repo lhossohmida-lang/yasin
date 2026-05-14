@@ -1785,3 +1785,184 @@ body {
         max-width: 100%;
     }
 }
+
+/* ============================ Online Store Section ============================ */
+.online-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.online-order-card {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color);
+    border-radius: 0.85rem;
+    padding: 1rem 1.2rem;
+    transition: var(--transition);
+}
+
+.online-order-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.online-order-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.8rem;
+}
+
+.online-order-number {
+    font-weight: 700;
+    color: var(--accent-primary);
+    font-size: 1rem;
+}
+
+.online-order-customer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem 1.2rem;
+    margin-bottom: 0.8rem;
+}
+
+.online-order-customer div {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.online-order-customer div b {
+    color: var(--text-primary);
+    margin-right: 0.3rem;
+}
+
+.online-order-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.online-order-total {
+    color: var(--accent-primary);
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.online-order-actions {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+.online-order-actions .btn-mini {
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.online-order-actions .btn-mini:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+.online-order-actions .btn-mini.btn-mini-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+.online-order-actions .btn-mini.btn-mini-success:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.status-badge.status-new { background: rgba(59, 130, 246, 0.15); color: var(--accent-primary); }
+.status-badge.status-processing { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+.status-badge.status-shipped { background: rgba(99, 102, 241, 0.15); color: #818CF8; }
+.status-badge.status-delivered { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+.status-badge.status-cancelled { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+.order-items-list {
+    background: rgba(0,0,0,0.15);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.order-item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.order-item-row:last-child { border-bottom: none; }
+
+.order-item-row img,
+.order-item-row .order-item-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: rgba(255,255,255,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
+.order-item-row .order-item-info {
+    flex: 1;
+}
+.order-item-row .order-item-info h4 {
+    font-size: 0.92rem;
+    margin-bottom: 0.2rem;
+}
+.order-item-row .order-item-info span {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.product-card .btn-shop-edit {
+    width: 100%;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 0.55rem;
+    border-radius: 0.5rem;
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: var(--transition);
+}
+.product-card .btn-shop-edit:hover {
+    background: rgba(59, 130, 246, 0.2);
+}

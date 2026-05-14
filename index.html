@@ -107,6 +107,7 @@
                 <a href="#" class="nav-item" data-target="section-history"><i class="fa-solid fa-clock-rotate-left"></i> سجل المبيعات</a>
                 <a href="#" class="nav-item" data-target="section-expenses"><i class="fa-solid fa-file-invoice-dollar"></i> الخسائر والمصاريف</a>
                 <a href="#" class="nav-item" data-target="section-accounts"><i class="fa-solid fa-users-gear"></i> إدارة الحسابات</a>
+                <a href="#" class="nav-item" data-target="section-shop"><i class="fa-solid fa-store"></i> المتجر الإلكتروني</a>
                 <a href="#" class="nav-item" data-target="section-ai"><i class="fa-solid fa-wand-magic-sparkles"></i> &#1575;&#1604;&#1584;&#1603;&#1575;&#1569; &#1575;&#1604;&#1575;&#1589;&#1591;&#1606;&#1575;&#1593;&#1610;</a>
             </nav>
             <div class="sidebar-bottom">
@@ -404,6 +405,149 @@
                     </div>
                     <div id="accounts-list" class="history-list">
                         <!-- injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- قسم المتجر الإلكتروني -->
+            <div id="section-shop" class="page-section" style="display:none">
+                <!-- بطاقات الإحصائيات -->
+                <section class="dashboard-cards">
+                    <div class="card card-income">
+                        <div class="card-icon"><i class="fa-solid fa-bell"></i></div>
+                        <div class="card-info">
+                            <h3>طلبات جديدة</h3>
+                            <p class="value text-blue" id="shop-new-count">0</p>
+                            <span class="subtitle">بانتظار المعالجة</span>
+                        </div>
+                    </div>
+                    <div class="card card-profit">
+                        <div class="card-icon"><i class="fa-solid fa-truck"></i></div>
+                        <div class="card-info">
+                            <h3>قيد التجهيز / الشحن</h3>
+                            <p class="value" id="shop-progress-count" style="color:#F59E0B;">0</p>
+                            <span class="subtitle">طلبات نشطة</span>
+                        </div>
+                    </div>
+                    <div class="card card-profit">
+                        <div class="card-icon"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="card-info">
+                            <h3>طلبات مكتملة</h3>
+                            <p class="value text-success" id="shop-delivered-count">0</p>
+                            <span class="subtitle">تم التسليم</span>
+                        </div>
+                    </div>
+                    <div class="card card-income">
+                        <div class="card-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                        <div class="card-info">
+                            <h3>مبيعات المتجر الإلكتروني</h3>
+                            <p class="value text-blue" id="shop-revenue">0.00</p>
+                            <span class="subtitle">المبالغ المسلّمة</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="panel" style="margin-bottom:1.5rem;">
+                    <div class="panel-header" style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:space-between; align-items:center;">
+                        <h2 style="margin:0;"><i class="fa-solid fa-store"></i> إدارة المتجر الإلكتروني</h2>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <a href="shop.html" target="_blank" class="btn btn-primary" style="width:auto; padding:0.6rem 1rem;"><i class="fa-solid fa-up-right-from-square"></i> فتح المتجر</a>
+                            <button class="btn btn-primary" id="btn-seed-demo" style="width:auto; padding:0.6rem 1rem; background:#374151;"><i class="fa-solid fa-database"></i> إضافة بيانات تجريبية</button>
+                        </div>
+                    </div>
+                    <p style="color:var(--text-secondary); font-size:0.9rem;">
+                        المنتجات في "إدارة المخزون" تظهر تلقائياً للزبائن. أضف صوراً وفئات وأوصافاً من خلال زر "تفاصيل المتجر" داخل بطاقة كل منتج.
+                    </p>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-bag-shopping"></i> الطلبات الأونلاين</h2>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.5rem;">
+                        <div class="search-box" style="flex:1; min-width:240px;">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="shop-orders-search" placeholder="ابحث بالاسم أو الهاتف أو رقم الطلب...">
+                        </div>
+                        <select id="shop-orders-filter" style="padding:0.6rem 1rem; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:0.5rem; color:var(--text-primary); min-width:170px;">
+                            <option value="all">كل الحالات</option>
+                            <option value="new">جديد</option>
+                            <option value="processing">قيد التجهيز</option>
+                            <option value="shipped">تم الشحن</option>
+                            <option value="delivered">تم التسليم</option>
+                            <option value="cancelled">ملغي</option>
+                        </select>
+                    </div>
+                    <div id="online-orders-list" class="online-orders-list">
+                        <!-- injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- نافذة تفاصيل الطلب -->
+            <div id="order-detail-modal" class="modal">
+                <div class="modal-content" style="width:600px; max-width:95%;">
+                    <div style="padding:1.5rem; background:var(--bg-surface);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border-color);">
+                            <h2 style="font-size:1.2rem;"><i class="fa-solid fa-receipt"></i> تفاصيل الطلب</h2>
+                            <button class="btn-icon-close" onclick="closeOrderDetail()" style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div id="order-detail-content" style="max-height:60vh; overflow-y:auto;"></div>
+                        <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border-color); display:flex; gap:0.5rem; flex-wrap:wrap;" id="order-detail-actions"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- نافذة تعديل تفاصيل المتجر -->
+            <div id="shop-detail-modal" class="modal">
+                <div class="modal-content" style="width:600px; max-width:95%;">
+                    <div style="padding:1.5rem; background:var(--bg-surface);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border-color);">
+                            <h2 style="font-size:1.2rem;"><i class="fa-solid fa-tag"></i> تفاصيل المنتج للمتجر الإلكتروني</h2>
+                            <button onclick="closeShopDetail()" style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <form id="shop-detail-form" style="display:flex; flex-direction:column; gap:1rem;">
+                            <input type="hidden" id="sd-product-id">
+                            <div class="form-group">
+                                <label>الفئة</label>
+                                <select id="sd-category">
+                                    <option value="men">الرجال</option>
+                                    <option value="women">النساء</option>
+                                    <option value="kids">الأطفال</option>
+                                    <option value="hoodies">هوديز وسويتشيرت</option>
+                                    <option value="shoes">أحذية</option>
+                                    <option value="accessories">إكسسوارات</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>رابط صورة المنتج</label>
+                                <input type="url" id="sd-image" placeholder="https://...">
+                            </div>
+                            <div class="form-group">
+                                <label>الوصف</label>
+                                <textarea id="sd-description" rows="3" style="width:100%; padding:0.8rem 1rem; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:0.5rem; color:var(--text-primary); resize:vertical; font-family:inherit;" placeholder="وصف المنتج..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>المقاسات (افصل بين كل مقاس بفاصلة)</label>
+                                <input type="text" id="sd-sizes" placeholder="S, M, L, XL">
+                            </div>
+                            <div class="form-group">
+                                <label>الألوان (بصيغة: اسم|كود لوني، مفصولة بفاصلة)</label>
+                                <input type="text" id="sd-colors" placeholder="أسود|#000000, أبيض|#FFFFFF, كحلي|#1E3A8A">
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:center; gap:0.75rem;">
+                                <input type="checkbox" id="sd-show" checked style="width:auto;">
+                                <label for="sd-show" style="margin:0;">عرض هذا المنتج في المتجر الإلكتروني</label>
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:center; gap:0.75rem;">
+                                <input type="checkbox" id="sd-new" style="width:auto;">
+                                <label for="sd-new" style="margin:0;">تمييز كـ "جديد"</label>
+                            </div>
+                            <div style="display:flex; gap:0.5rem;">
+                                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ</button>
+                                <button type="button" class="btn btn-danger" onclick="closeShopDetail()" style="background:#374151;">إلغاء</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

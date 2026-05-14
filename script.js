@@ -110,6 +110,9 @@ function renderInventoryCards() {
                     <i class="fa-solid fa-trash"></i> حذف
                 </button>
             </div>
+            <button class="btn-shop-edit" onclick="openShopDetail('${item.id}')">
+                <i class="fa-solid fa-tag"></i> تفاصيل المتجر الإلكتروني
+            </button>
         `;
         container.appendChild(card);
     });
@@ -585,9 +588,12 @@ function applyRole(role) {
     const isWorker = role === 'worker';
     document.querySelectorAll('.nav-item').forEach(el => {
         const t = el.getAttribute('data-target');
-        el.style.display = (isWorker && (t === 'section-inventory' || t === 'section-accounts' || t === 'section-ai')) ? 'none' : 'flex';
+        el.style.display = (isWorker && (t === 'section-inventory' || t === 'section-accounts' || t === 'section-shop' || t === 'section-ai')) ? 'none' : 'flex';
     });
-    if (!isWorker) startAccountsListener();
+    if (!isWorker) {
+        startAccountsListener();
+        if (typeof startOnlineOrdersListener === 'function') startOnlineOrdersListener();
+    }
     document.querySelectorAll('.card-capital, .card-profit, .card-loss').forEach(el => {
         el.style.display = isWorker ? 'none' : '';
     });
@@ -1200,3 +1206,382 @@ window.addEventListener('appinstalled', () => {
     installBanner.style.display = 'none';
     deferredInstallPrompt = null;
 });
+
+// ================== المتجر الإلكتروني — الطلبات الأونلاين ==================
+let onlineOrders = [];
+let onlineOrdersListener = null;
+
+function startOnlineOrdersListener() {
+    if (onlineOrdersListener) return;
+    onlineOrdersListener = db.collection('online_orders')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snap => {
+            onlineOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderOnlineOrders();
+            renderOnlineOrdersStats();
+        }, err => {
+            console.error('Online orders load failed:', err);
+            const list = document.getElementById('online-orders-list');
+            if (list) {
+                list.innerHTML = '<p class="text-secondary" style="text-align:center;padding:2rem;">تعذر تحميل الطلبات. تحقق من قواعد Firestore.</p>';
+            }
+        });
+}
+
+const ORDER_STATUS = {
+    new: { label: 'جديد', class: 'status-new', icon: 'fa-circle' },
+    processing: { label: 'قيد التجهيز', class: 'status-processing', icon: 'fa-box-open' },
+    shipped: { label: 'تم الشحن', class: 'status-shipped', icon: 'fa-truck' },
+    delivered: { label: 'تم التسليم', class: 'status-delivered', icon: 'fa-check-circle' },
+    cancelled: { label: 'ملغي', class: 'status-cancelled', icon: 'fa-circle-xmark' }
+};
+
+function renderOnlineOrdersStats() {
+    const newCount = onlineOrders.filter(o => o.status === 'new').length;
+    const progCount = onlineOrders.filter(o => o.status === 'processing' || o.status === 'shipped').length;
+    const delvCount = onlineOrders.filter(o => o.status === 'delivered').length;
+    const revenue = onlineOrders
+        .filter(o => o.status === 'delivered')
+        .reduce((s, o) => s + (Number(o.totalPrice) || 0), 0);
+
+    const el1 = document.getElementById('shop-new-count');
+    const el2 = document.getElementById('shop-progress-count');
+    const el3 = document.getElementById('shop-delivered-count');
+    const el4 = document.getElementById('shop-revenue');
+    if (el1) el1.innerText = newCount;
+    if (el2) el2.innerText = progCount;
+    if (el3) el3.innerText = delvCount;
+    if (el4) el4.innerText = revenue.toLocaleString('ar-DZ', { minimumFractionDigits: 2 }) + ' د.ج';
+}
+
+function renderOnlineOrders() {
+    const list = document.getElementById('online-orders-list');
+    if (!list) return;
+    const search = (document.getElementById('shop-orders-search')?.value || '').trim().toLowerCase();
+    const filterStatus = document.getElementById('shop-orders-filter')?.value || 'all';
+
+    let filtered = onlineOrders.slice();
+    if (filterStatus !== 'all') filtered = filtered.filter(o => o.status === filterStatus);
+    if (search) {
+        filtered = filtered.filter(o =>
+            String(o.orderNumber || '').toLowerCase().includes(search) ||
+            String(o.customerName || '').toLowerCase().includes(search) ||
+            String(o.phone || '').toLowerCase().includes(search)
+        );
+    }
+
+    if (filtered.length === 0) {
+        list.innerHTML = `
+            <div style="text-align:center; padding:3rem 1rem; color:var(--text-secondary);">
+                <i class="fa-solid fa-inbox" style="font-size:3rem; opacity:0.4; margin-bottom:1rem; display:block;"></i>
+                <p>${onlineOrders.length === 0 ? 'لا توجد طلبات أونلاين بعد' : 'لا توجد طلبات مطابقة للبحث'}</p>
+            </div>`;
+        return;
+    }
+
+    list.innerHTML = '';
+    filtered.forEach(order => {
+        const status = ORDER_STATUS[order.status] || ORDER_STATUS.new;
+        const created = order.createdAt?.toDate?.()?.toLocaleString('ar-DZ') || '';
+        const card = document.createElement('div');
+        card.className = 'online-order-card';
+        card.innerHTML = `
+            <div class="online-order-head">
+                <div>
+                    <span class="online-order-number">#${escapeForHTML(order.orderNumber || order.id)}</span>
+                    <span style="color:var(--text-secondary); font-size:0.82rem; margin-right:0.7rem;">${escapeForHTML(created)}</span>
+                </div>
+                <span class="status-badge ${status.class}"><i class="fa-solid ${status.icon}"></i> ${status.label}</span>
+            </div>
+            <div class="online-order-customer">
+                <div><b>الزبون:</b> ${escapeForHTML(order.customerName)}</div>
+                <div><b>الهاتف:</b> ${escapeForHTML(order.phone)}</div>
+                <div><b>الولاية:</b> ${escapeForHTML(order.wilaya)}</div>
+                <div><b>البلدية:</b> ${escapeForHTML(order.baladiya)}</div>
+                <div style="grid-column:1/-1"><b>العنوان:</b> ${escapeForHTML(order.address)}</div>
+                <div><b>المنتجات:</b> ${order.items?.length || 0} قطعة</div>
+                <div><b>الدفع:</b> ${order.paymentMethod === 'cod' ? 'عند الاستلام' : escapeForHTML(order.paymentMethod || '-')}</div>
+            </div>
+            <div class="online-order-foot">
+                <span class="online-order-total">${(Number(order.totalPrice) || 0).toLocaleString('ar-DZ')} د.ج</span>
+                <div class="online-order-actions">
+                    <button class="btn-mini" onclick="openOrderDetail('${order.id}')"><i class="fa-solid fa-eye"></i> التفاصيل</button>
+                    ${order.status === 'new' ? `<button class="btn-mini btn-mini-success" onclick="updateOrderStatus('${order.id}','processing')"><i class="fa-solid fa-check"></i> قبول</button>` : ''}
+                    ${order.status === 'processing' ? `<button class="btn-mini btn-mini-success" onclick="updateOrderStatus('${order.id}','shipped')"><i class="fa-solid fa-truck"></i> شحن</button>` : ''}
+                    ${order.status === 'shipped' ? `<button class="btn-mini btn-mini-success" onclick="updateOrderStatus('${order.id}','delivered')"><i class="fa-solid fa-circle-check"></i> تسليم</button>` : ''}
+                    ${(order.status !== 'cancelled' && order.status !== 'delivered') ? `<button class="btn-mini btn-mini-danger" onclick="updateOrderStatus('${order.id}','cancelled')"><i class="fa-solid fa-xmark"></i> إلغاء</button>` : ''}
+                </div>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+function escapeForHTML(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+window.openOrderDetail = function(orderId) {
+    const order = onlineOrders.find(o => o.id === orderId);
+    if (!order) return;
+    const content = document.getElementById('order-detail-content');
+    const actions = document.getElementById('order-detail-actions');
+    const status = ORDER_STATUS[order.status] || ORDER_STATUS.new;
+    const created = order.createdAt?.toDate?.()?.toLocaleString('ar-DZ') || '';
+
+    const itemsHtml = (order.items || []).map(item => {
+        const img = item.image
+            ? `<img src="${item.image}" alt="" onerror="this.outerHTML='<div class=\\'order-item-icon\\'><i class=\\'fa-solid fa-shirt\\'></i></div>'">`
+            : `<div class="order-item-icon"><i class="fa-solid fa-shirt"></i></div>`;
+        return `
+            <div class="order-item-row">
+                ${img}
+                <div class="order-item-info">
+                    <h4>${escapeForHTML(item.name)}</h4>
+                    <span>المقاس: ${escapeForHTML(item.size || '-')} · اللون: ${escapeForHTML(item.colorName || '-')} · الكمية: ${item.qty}</span>
+                </div>
+                <div style="color:var(--accent-primary); font-weight:700; white-space:nowrap;">${(item.sellPrice * item.qty).toLocaleString('ar-DZ')} د.ج</div>
+            </div>`;
+    }).join('');
+
+    content.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <strong style="color:var(--accent-primary); font-size:1.1rem;">#${escapeForHTML(order.orderNumber || order.id)}</strong>
+            <span class="status-badge ${status.class}"><i class="fa-solid ${status.icon}"></i> ${status.label}</span>
+        </div>
+        <div class="online-order-customer" style="margin-bottom:1rem;">
+            <div><b>الزبون:</b> ${escapeForHTML(order.customerName)}</div>
+            <div><b>الهاتف:</b> ${escapeForHTML(order.phone)}</div>
+            <div><b>الولاية:</b> ${escapeForHTML(order.wilaya)}</div>
+            <div><b>البلدية:</b> ${escapeForHTML(order.baladiya)}</div>
+            <div style="grid-column:1/-1"><b>العنوان:</b> ${escapeForHTML(order.address)}</div>
+            ${order.notes ? `<div style="grid-column:1/-1"><b>ملاحظات:</b> ${escapeForHTML(order.notes)}</div>` : ''}
+            <div><b>تاريخ الطلب:</b> ${escapeForHTML(created)}</div>
+            <div><b>الدفع:</b> ${order.paymentMethod === 'cod' ? 'عند الاستلام' : escapeForHTML(order.paymentMethod)}</div>
+        </div>
+        <h4 style="margin-bottom:0.6rem;">المنتجات</h4>
+        <div class="order-items-list" style="margin-bottom:1rem;">${itemsHtml}</div>
+        <div style="background:rgba(0,0,0,0.2); border-radius:0.5rem; padding:0.85rem 1rem;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem; color:var(--text-secondary);"><span>المجموع الفرعي</span><span>${(Number(order.subtotal) || 0).toLocaleString('ar-DZ')} د.ج</span></div>
+            ${order.discount ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.3rem; color:var(--success);"><span>الخصم${order.promoCode ? ' (' + escapeForHTML(order.promoCode) + ')' : ''}</span><span>- ${(Number(order.discount) || 0).toLocaleString('ar-DZ')} د.ج</span></div>` : ''}
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem; color:var(--text-secondary);"><span>الشحن</span><span>${order.shipping ? (Number(order.shipping)).toLocaleString('ar-DZ') + ' د.ج' : 'مجاني'}</span></div>
+            <div style="display:flex; justify-content:space-between; padding-top:0.6rem; margin-top:0.4rem; border-top:1px solid var(--border-color); font-weight:700; font-size:1.05rem;"><span>الإجمالي</span><span class="text-blue">${(Number(order.totalPrice) || 0).toLocaleString('ar-DZ')} د.ج</span></div>
+        </div>
+    `;
+
+    let actionButtons = '';
+    if (order.status === 'new') actionButtons += `<button class="btn btn-primary" style="width:auto; padding:0.6rem 1rem;" onclick="updateOrderStatus('${order.id}','processing'); closeOrderDetail();"><i class="fa-solid fa-check"></i> قبول الطلب</button>`;
+    if (order.status === 'processing') actionButtons += `<button class="btn btn-primary" style="width:auto; padding:0.6rem 1rem;" onclick="updateOrderStatus('${order.id}','shipped'); closeOrderDetail();"><i class="fa-solid fa-truck"></i> شحن</button>`;
+    if (order.status === 'shipped') actionButtons += `<button class="btn btn-primary" style="width:auto; padding:0.6rem 1rem;" onclick="updateOrderStatus('${order.id}','delivered'); closeOrderDetail();"><i class="fa-solid fa-circle-check"></i> تأكيد التسليم</button>`;
+    if (order.status !== 'cancelled' && order.status !== 'delivered') actionButtons += `<button class="btn btn-danger" style="width:auto; padding:0.6rem 1rem;" onclick="updateOrderStatus('${order.id}','cancelled'); closeOrderDetail();"><i class="fa-solid fa-xmark"></i> إلغاء الطلب</button>`;
+    actionButtons += `<button class="btn btn-danger" style="width:auto; padding:0.6rem 1rem; background:#374151;" onclick="closeOrderDetail()">إغلاق</button>`;
+    actions.innerHTML = actionButtons;
+
+    document.getElementById('order-detail-modal').classList.add('show');
+};
+
+window.closeOrderDetail = function() {
+    document.getElementById('order-detail-modal').classList.remove('show');
+};
+
+window.updateOrderStatus = async function(orderId, newStatus) {
+    const order = onlineOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    // When moving from "new" to "processing", decrement stock
+    if (order.status === 'new' && newStatus === 'processing') {
+        // First verify all items have enough stock
+        for (const item of (order.items || [])) {
+            const product = inventory.find(p => p.id === item.productId);
+            if (!product || (Number(product.qty) || 0) < (Number(item.qty) || 0)) {
+                alert(`لا يمكن قبول الطلب: الكمية المتوفرة من "${item.name}" غير كافية.`);
+                return;
+            }
+        }
+        try {
+            const batch = db.batch();
+            (order.items || []).forEach(item => {
+                const product = inventory.find(p => p.id === item.productId);
+                if (product) {
+                    batch.update(db.collection('inventory').doc(product.id), { qty: (Number(product.qty) || 0) - (Number(item.qty) || 0) });
+                }
+            });
+            batch.update(db.collection('online_orders').doc(orderId), {
+                status: newStatus,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                stockDeducted: true
+            });
+            await batch.commit();
+            return;
+        } catch (err) {
+            console.error(err);
+            alert('حدث خطأ أثناء قبول الطلب وخصم المخزون.');
+            return;
+        }
+    }
+
+    // When moving to "delivered", credit revenue
+    if (newStatus === 'delivered' && order.status !== 'delivered') {
+        try {
+            const batch = db.batch();
+            const revenue = Number(order.totalPrice) || 0;
+            const cost = (order.items || []).reduce((s, it) => s + (Number(it.buyPrice) || 0) * (Number(it.qty) || 0), 0);
+            storeData.totalIncome = (Number(storeData.totalIncome) || 0) + revenue;
+            storeData.netProfit = (Number(storeData.netProfit) || 0) + (revenue - cost);
+            batch.set(db.collection('store').doc('data'), storeData);
+            batch.update(db.collection('online_orders').doc(orderId), {
+                status: newStatus,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                revenueAccounted: true
+            });
+            await batch.commit();
+            return;
+        } catch (err) {
+            console.error(err);
+            alert('حدث خطأ أثناء تأكيد التسليم.');
+            return;
+        }
+    }
+
+    // When cancelling an order that already deducted stock, restore stock
+    if (newStatus === 'cancelled' && order.stockDeducted && order.status !== 'delivered') {
+        try {
+            const batch = db.batch();
+            (order.items || []).forEach(item => {
+                const product = inventory.find(p => p.id === item.productId);
+                if (product) {
+                    batch.update(db.collection('inventory').doc(product.id), { qty: (Number(product.qty) || 0) + (Number(item.qty) || 0) });
+                }
+            });
+            batch.update(db.collection('online_orders').doc(orderId), {
+                status: newStatus,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                stockDeducted: false
+            });
+            await batch.commit();
+            return;
+        } catch (err) {
+            console.error(err);
+            alert('حدث خطأ أثناء إلغاء الطلب.');
+            return;
+        }
+    }
+
+    // Default: just update status
+    try {
+        await db.collection('online_orders').doc(orderId).update({
+            status: newStatus,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء تحديث حالة الطلب.');
+    }
+};
+
+// Search & filter listeners
+const shopOrdersSearch = document.getElementById('shop-orders-search');
+const shopOrdersFilter = document.getElementById('shop-orders-filter');
+if (shopOrdersSearch) shopOrdersSearch.addEventListener('input', renderOnlineOrders);
+if (shopOrdersFilter) shopOrdersFilter.addEventListener('change', renderOnlineOrders);
+
+// ================== تفاصيل المنتج للمتجر الإلكتروني ==================
+window.openShopDetail = function(productId) {
+    const product = inventory.find(p => p.id === productId);
+    if (!product) return;
+    document.getElementById('sd-product-id').value = productId;
+    document.getElementById('sd-category').value = product.category || 'men';
+    document.getElementById('sd-image').value = product.image || '';
+    document.getElementById('sd-description').value = product.description || '';
+    document.getElementById('sd-sizes').value = Array.isArray(product.sizes) ? product.sizes.join(', ') : '';
+    document.getElementById('sd-colors').value = Array.isArray(product.colors)
+        ? product.colors.map(c => typeof c === 'string' ? c : `${c.name || ''}|${c.hex || ''}`).join(', ')
+        : '';
+    document.getElementById('sd-show').checked = product.showInShop !== false;
+    document.getElementById('sd-new').checked = product.isNew === true;
+    document.getElementById('shop-detail-modal').classList.add('show');
+};
+
+window.closeShopDetail = function() {
+    document.getElementById('shop-detail-modal').classList.remove('show');
+};
+
+const shopDetailForm = document.getElementById('shop-detail-form');
+if (shopDetailForm) {
+    shopDetailForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('sd-product-id').value;
+        const sizes = document.getElementById('sd-sizes').value
+            .split(',').map(s => s.trim()).filter(Boolean);
+        const colors = document.getElementById('sd-colors').value
+            .split(',').map(s => s.trim()).filter(Boolean)
+            .map(token => {
+                const [name, hex] = token.split('|').map(x => (x || '').trim());
+                return { name: name || token, hex: hex || '#666666' };
+            });
+        const update = {
+            category: document.getElementById('sd-category').value,
+            image: document.getElementById('sd-image').value.trim(),
+            description: document.getElementById('sd-description').value.trim(),
+            sizes,
+            colors,
+            showInShop: document.getElementById('sd-show').checked,
+            isNew: document.getElementById('sd-new').checked
+        };
+        try {
+            await db.collection('inventory').doc(id).update(update);
+            closeShopDetail();
+        } catch (err) {
+            console.error(err);
+            alert('حدث خطأ أثناء حفظ التفاصيل.');
+        }
+    });
+}
+
+// ================== Seed demo data ==================
+const DEMO_PRODUCTS = [
+    { name: 'هودي أساسي', qty: 20, buyPrice: 3500, sellPrice: 5600, category: 'hoodies', image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=80', description: 'هودي قطني عصري بقصة مريحة وخامة فاخرة، مثالي لإطلالاتك اليومية.', sizes: ['S','M','L','XL','XXL'], colors: [{name:'كحلي',hex:'#1E3A8A'},{name:'أسود',hex:'#0F172A'},{name:'رمادي',hex:'#64748B'}], isNew: true },
+    { name: 'جاكيت جينز', qty: 15, buyPrice: 5000, sellPrice: 7900, category: 'men', image: 'https://images.unsplash.com/photo-1601333144130-8cbb312386b6?w=600&q=80', description: 'جاكيت جينز كلاسيكي يضفي لمسة كاجوال أنيقة على إطلالتك.', sizes: ['M','L','XL'], colors: [{name:'أزرق',hex:'#1D4ED8'},{name:'أسود',hex:'#0F172A'}], isNew: true },
+    { name: 'قميص أوفر سايز', qty: 25, buyPrice: 2800, sellPrice: 4800, category: 'men', image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&q=80', description: 'قميص أوفر سايز بخامة قطنية ناعمة وقصة عصرية.', sizes: ['S','M','L','XL'], colors: [{name:'بيج',hex:'#D4C5A0'},{name:'أبيض',hex:'#F8FAFC'}], isNew: true },
+    { name: 'تيشيرت قطني', qty: 40, buyPrice: 1500, sellPrice: 3200, category: 'men', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80', description: 'تيشيرت قطن 100% بقصة كلاسيكية مناسبة للاستخدام اليومي.', sizes: ['S','M','L','XL','XXL'], colors: [{name:'أسود',hex:'#0F172A'},{name:'أبيض',hex:'#F8FAFC'},{name:'كحلي',hex:'#1E3A8A'},{name:'رمادي',hex:'#64748B'}], isNew: true },
+    { name: 'كاب أسود', qty: 30, buyPrice: 900, sellPrice: 2300, category: 'accessories', image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&q=80', description: 'كاب رياضي أسود بتصميم بسيط وعصري.', sizes: ['قياس واحد'], colors: [{name:'أسود',hex:'#0F172A'}], isNew: true },
+    { name: 'حذاء أبيض', qty: 18, buyPrice: 4500, sellPrice: 7500, category: 'shoes', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80', description: 'حذاء أبيض كلاسيكي بنعل مريح يناسب جميع الإطلالات.', sizes: ['39','40','41','42','43','44'], colors: [{name:'أبيض',hex:'#F8FAFC'}] },
+    { name: 'حقيبة ظهر', qty: 12, buyPrice: 3200, sellPrice: 5500, category: 'accessories', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&q=80', description: 'حقيبة ظهر متينة بتصميم عملي وأنيق وجيوب متعددة.', sizes: ['قياس واحد'], colors: [{name:'أسود',hex:'#0F172A'}] },
+    { name: 'فستان نسائي', qty: 14, buyPrice: 4000, sellPrice: 6800, category: 'women', image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=600&q=80', description: 'فستان نسائي أنيق لجميع المناسبات.', sizes: ['S','M','L','XL'], colors: [{name:'كحلي',hex:'#1E3A8A'},{name:'أسود',hex:'#0F172A'}] },
+    { name: 'تيشيرت أطفال', qty: 22, buyPrice: 800, sellPrice: 1800, category: 'kids', image: 'https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?w=600&q=80', description: 'تيشيرت أطفال قطني بألوان مبهجة.', sizes: ['2-4','4-6','6-8','8-10'], colors: [{name:'أحمر',hex:'#DC2626'},{name:'أزرق',hex:'#2563EB'}] },
+    { name: 'سويتشيرت نسائي', qty: 16, buyPrice: 2900, sellPrice: 4900, category: 'hoodies', image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600&q=80', description: 'سويتشيرت نسائي بخامة دافئة وقصة عصرية.', sizes: ['S','M','L','XL'], colors: [{name:'وردي',hex:'#EC4899'},{name:'رمادي',hex:'#64748B'}] }
+];
+
+const btnSeedDemo = document.getElementById('btn-seed-demo');
+if (btnSeedDemo) {
+    btnSeedDemo.addEventListener('click', async () => {
+        if (!confirm('سيتم إضافة ' + DEMO_PRODUCTS.length + ' منتجاً تجريبياً إلى المخزون. هل تريد المتابعة؟')) return;
+        btnSeedDemo.disabled = true;
+        btnSeedDemo.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإضافة...';
+        try {
+            const batch = db.batch();
+            DEMO_PRODUCTS.forEach(p => {
+                const ref = db.collection('inventory').doc();
+                batch.set(ref, {
+                    ...p,
+                    showInShop: true,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            await batch.commit();
+            alert('تم إضافة البيانات التجريبية بنجاح!');
+        } catch (err) {
+            console.error(err);
+            alert('حدث خطأ أثناء إضافة البيانات التجريبية.');
+        } finally {
+            btnSeedDemo.disabled = false;
+            btnSeedDemo.innerHTML = '<i class="fa-solid fa-database"></i> إضافة بيانات تجريبية';
+        }
+    });
+}
+
+// If admin is already logged in via session restore
+if (currentRole === 'admin') startOnlineOrdersListener();
+

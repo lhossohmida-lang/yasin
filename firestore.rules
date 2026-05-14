@@ -8,9 +8,10 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // المخزون
+    // المخزون - قراءة عامة (لعرض المنتجات للزبائن)، كتابة مفتوحة (المدير)
     match /inventory/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if true;
     }
 
     // سجل المبيعات
@@ -32,8 +33,24 @@ service cloud.firestore {
     match /worker_salaries/{document} {
       allow read, write: if true;
     }
+
+    // حسابات المستخدمين
     match /accounts/{document} {
       allow read, write: if true;
+    }
+
+    // الطلبات الأونلاين - الزبون يمكنه إنشاء طلب فقط
+    match /online_orders/{orderId} {
+      // الزبون يمكنه إنشاء طلب جديد بشرط أن تكون الحقول المطلوبة موجودة وأن تكون الحالة "new"
+      allow create: if request.resource.data.status == 'new'
+                    && request.resource.data.customerName is string
+                    && request.resource.data.phone is string
+                    && request.resource.data.items is list
+                    && request.resource.data.totalPrice is number;
+      // قراءة الطلبات (للمدير عبر لوحة الإدارة، وللزبون عبر رقم الهاتف من تطبيقه)
+      allow read: if true;
+      // التعديل والحذف للإدارة فقط (مفتوح حالياً للتوافق مع لوحة الإدارة)
+      allow update, delete: if true;
     }
   }
 }

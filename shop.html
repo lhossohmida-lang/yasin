@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StyleHub — متجر الملابس العصرية</title>
+    <meta name="theme-color" content="#0A1024">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="shop.css">
+    <link rel="icon" type="image/png" href="icon.png">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- ============================ Top Navbar (Desktop) ============================ -->
+    <header class="sh-navbar">
+        <div class="sh-navbar-inner">
+            <a href="#/" class="sh-logo">
+                <span>StyleHub<i>.</i></span>
+            </a>
+
+            <nav class="sh-nav-links">
+                <a href="#/" class="sh-nav-link" data-route="/">الرئيسية</a>
+                <a href="#/category/all" class="sh-nav-link" data-route="/category/all">التصنيفات</a>
+                <a href="#/category/new" class="sh-nav-link" data-route="/category/new">جديدنا</a>
+                <a href="#/category/men" class="sh-nav-link" data-route="/category/men">الرجال</a>
+                <a href="#/category/women" class="sh-nav-link" data-route="/category/women">النساء</a>
+                <a href="#/category/kids" class="sh-nav-link" data-route="/category/kids">الأطفال</a>
+                <a href="#/category/offers" class="sh-nav-link" data-route="/category/offers">العروض</a>
+            </nav>
+
+            <div class="sh-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="sh-search-input" placeholder="ابحث عن منتج...">
+                <div class="sh-search-results" id="sh-search-results"></div>
+            </div>
+
+            <div class="sh-icons">
+                <a href="#/wishlist" class="sh-icon-btn" title="المفضلة">
+                    <i class="fa-regular fa-heart"></i>
+                    <span class="sh-badge" id="sh-wishlist-badge">0</span>
+                </a>
+                <a href="#/account" class="sh-icon-btn" title="حسابي">
+                    <i class="fa-regular fa-user"></i>
+                </a>
+                <a href="#/cart" class="sh-icon-btn" title="السلة">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                    <span class="sh-badge" id="sh-cart-badge">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================ Mobile Header ============================ -->
+    <header class="sh-mobile-header">
+        <div class="sh-mobile-row">
+            <a href="#/cart" class="sh-icon-btn" title="السلة">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="sh-badge" id="sh-cart-badge-m">0</span>
+            </a>
+            <a href="#/wishlist" class="sh-icon-btn" title="المفضلة">
+                <i class="fa-regular fa-heart"></i>
+            </a>
+            <a href="#/" class="sh-mobile-logo">StyleHub<i>.</i></a>
+            <button class="sh-icon-btn" id="sh-mobile-search-btn" title="بحث">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+            <a href="#/account" class="sh-icon-btn" title="حسابي">
+                <i class="fa-regular fa-user"></i>
+            </a>
+        </div>
+        <div class="sh-mobile-search" id="sh-mobile-search" style="display:none;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="sh-mobile-search-input" placeholder="ابحث عن منتج...">
+        </div>
+    </header>
+
+    <!-- ============================ Main Content ============================ -->
+    <main id="sh-main" class="sh-main">
+        <!-- Pages injected via routing -->
+    </main>
+
+    <!-- ============================ Mobile Bottom Nav ============================ -->
+    <nav class="sh-bottom-nav">
+        <a href="#/account" class="sh-bnav-item" data-route="/account">
+            <i class="fa-regular fa-user"></i>
+            <span>حسابي</span>
+        </a>
+        <a href="#/wishlist" class="sh-bnav-item" data-route="/wishlist">
+            <i class="fa-regular fa-heart"></i>
+            <span>المفضلة</span>
+        </a>
+        <a href="#/" class="sh-bnav-item sh-bnav-home" data-route="/">
+            <div class="sh-bnav-home-circle"><i class="fa-solid fa-house"></i></div>
+            <span>الرئيسية</span>
+        </a>
+        <a href="#/category/all" class="sh-bnav-item" data-route="/category/all">
+            <i class="fa-solid fa-grip"></i>
+            <span>الفئات</span>
+        </a>
+        <a href="#/cart" class="sh-bnav-item" data-route="/cart">
+            <span class="sh-bnav-cart-wrap">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="sh-badge" id="sh-cart-badge-b">0</span>
+            </span>
+            <span>السلة</span>
+        </a>
+    </nav>
+
+    <!-- ============================ Toast Container ============================ -->
+    <div id="sh-toast-container" class="sh-toast-container"></div>
+
+    <!-- ============================ Loading Overlay ============================ -->
+    <div id="sh-loading-overlay" class="sh-loading-overlay">
+        <div class="sh-spinner"></div>
+    </div>
+
+    <!-- ============================ Templates ============================ -->
+    <template id="tpl-home">
+        <div class="sh-page sh-home">
+            <!-- Hero Slider -->
+            <section class="sh-hero">
+                <div class="sh-hero-slides" id="sh-hero-slides">
+                    <!-- slides injected -->
+                </div>
+                <div class="sh-hero-dots" id="sh-hero-dots"></div>
+            </section>
+
+            <!-- Features Bar -->
+            <section class="sh-features">
+                <div class="sh-feature">
+                    <div class="sh-feature-icon"><i class="fa-solid fa-truck-fast"></i></div>
+                    <div class="sh-feature-text">
+                        <h4>شحن مجاني</h4>
+                        <p>للطلبات التي تزيد عن 299 د.ج</p>
+                    </div>
+                </div>
+                <div class="sh-feature">
+                    <div class="sh-feature-icon"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+                    <div class="sh-feature-text">
+                        <h4>إرجاع سهل</h4>
+                        <p>إرجاع مجاني خلال 14 يوم</p>
+                    </div>
+                </div>
+                <div class="sh-feature">
+                    <div class="sh-feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="sh-feature-text">
+                        <h4>دفع آمن</h4>
+                        <p>تسوق بثقة وخصوصية تامة</p>
+                    </div>
+                </div>
+                <div class="sh-feature sh-feature-desktop">
+                    <div class="sh-feature-icon"><i class="fa-solid fa-headset"></i></div>
+                    <div class="sh-feature-text">
+                        <h4>دعم عملاء 24/7</h4>
+                        <p>نحن هنا لمساعدتك دائماً</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shop by Category -->
+            <section class="sh-section">
+                <div class="sh-section-head">
+                    <h2 class="sh-section-title">تسوق حسب الفئة</h2>
+                    <a href="#/category/all" class="sh-section-link">عرض جميع الفئات <i class="fa-solid fa-angle-left"></i></a>
+                </div>
+                <div class="sh-categories-grid" id="sh-categories-grid">
+                    <!-- categories injected -->
+                </div>
+            </section>
+
+            <!-- Recently Added -->
+            <section class="sh-section">
+                <div class="sh-section-head">
+                    <h2 class="sh-section-title">وصل حديثاً</h2>
+                    <a href="#/category/all" class="sh-section-link">عرض جميع المنتجات <i class="fa-solid fa-angle-left"></i></a>
+                </div>
+                <div class="sh-products-grid" id="sh-new-products">
+                    <!-- products injected -->
+                </div>
+            </section>
+
+            <!-- Discount Banner -->
+            <section class="sh-discount-banner">
+                <div class="sh-discount-left">
+                    <div class="sh-discount-icon"><i class="fa-solid fa-tag"></i></div>
+                    <div class="sh-discount-text">
+                        <h3>خصم 10% على طلبك الأول</h3>
+                        <p>استخدم الكود: <b>STYLE10</b> عند إتمام الشراء</p>
+                    </div>
+                </div>
+                <a href="#/category/all" class="sh-btn sh-btn-primary">تسوق الآن</a>
+            </section>
+        </div>
+    </template>
+
+    <template id="tpl-category">
+        <div class="sh-page sh-listing">
+            <div class="sh-listing-head">
+                <h1 id="sh-cat-title">جميع المنتجات</h1>
+                <div class="sh-listing-controls">
+                    <select id="sh-sort">
+                        <option value="newest">الأحدث</option>
+                        <option value="price-asc">السعر: من الأقل</option>
+                        <option value="price-desc">السعر: من الأعلى</option>
+                        <option value="name">الاسم</option>
+                    </select>
+                </div>
+            </div>
+            <div class="sh-products-grid" id="sh-listing-grid"></div>
+        </div>
+    </template>
+
+    <template id="tpl-product">
+        <div class="sh-page sh-product-page">
+            <div class="sh-breadcrumb">
+                <a href="#/">الرئيسية</a>
+                <i class="fa-solid fa-angle-left"></i>
+                <span id="sh-product-bc">المنتج</span>
+            </div>
+            <div class="sh-product-layout">
+                <div class="sh-product-gallery">
+                    <div class="sh-product-main-img" id="sh-product-main-img"></div>
+                    <div class="sh-product-thumbs" id="sh-product-thumbs"></div>
+                </div>
+                <div class="sh-product-info">
+                    <h1 id="sh-product-name"></h1>
+                    <div class="sh-product-rating">
+                        <span class="sh-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i></span>
+                        <span class="sh-rating-count">(4.7 / 5)</span>
+                    </div>
+                    <div class="sh-product-price" id="sh-product-price"></div>
+                    <p class="sh-product-desc" id="sh-product-desc"></p>
+
+                    <div class="sh-product-option">
+                        <label>المقاس</label>
+                        <div class="sh-options" id="sh-product-sizes"></div>
+                    </div>
+
+                    <div class="sh-product-option">
+                        <label>اللون</label>
+                        <div class="sh-options sh-color-options" id="sh-product-colors"></div>
+                    </div>
+
+                    <div class="sh-product-option">
+                        <label>الكمية</label>
+                        <div class="sh-qty-control">
+                            <button id="sh-qty-minus"><i class="fa-solid fa-minus"></i></button>
+                            <input type="number" id="sh-qty-value" value="1" min="1" max="99">
+                            <button id="sh-qty-plus"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="sh-product-actions">
+                        <button class="sh-btn sh-btn-primary sh-btn-block" id="sh-add-to-cart">
+                            <i class="fa-solid fa-bag-shopping"></i> أضف إلى السلة
+                        </button>
+                        <button class="sh-btn sh-btn-ghost sh-btn-icon" id="sh-add-to-wishlist" title="المفضلة">
+                            <i class="fa-regular fa-heart"></i>
+                        </button>
+                    </div>
+
+                    <div class="sh-product-meta" id="sh-product-meta"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-cart">
+        <div class="sh-page sh-cart-page">
+            <h1 class="sh-page-title">سلة المشتريات</h1>
+            <div class="sh-cart-layout">
+                <div class="sh-cart-items" id="sh-cart-items"></div>
+                <div class="sh-cart-summary" id="sh-cart-summary"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-checkout">
+        <div class="sh-page sh-checkout-page">
+            <h1 class="sh-page-title">إتمام الطلب</h1>
+            <div class="sh-checkout-layout">
+                <form class="sh-checkout-form" id="sh-checkout-form">
+                    <div class="sh-form-card">
+                        <h3><i class="fa-solid fa-user"></i> معلومات الزبون</h3>
+                        <div class="sh-form-grid">
+                            <div class="sh-field">
+                                <label>الاسم الكامل <span>*</span></label>
+                                <input type="text" id="co-name" required placeholder="أحمد بن محمد">
+                            </div>
+                            <div class="sh-field">
+                                <label>رقم الهاتف <span>*</span></label>
+                                <input type="tel" id="co-phone" required placeholder="0555 123 456">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sh-form-card">
+                        <h3><i class="fa-solid fa-location-dot"></i> عنوان التوصيل</h3>
+                        <div class="sh-form-grid">
+                            <div class="sh-field">
+                                <label>الولاية <span>*</span></label>
+                                <select id="co-wilaya" required></select>
+                            </div>
+                            <div class="sh-field">
+                                <label>البلدية <span>*</span></label>
+                                <input type="text" id="co-baladiya" required placeholder="مثال: باب الزوار">
+                            </div>
+                            <div class="sh-field sh-field-full">
+                                <label>العنوان <span>*</span></label>
+                                <input type="text" id="co-address" required placeholder="الحي، الشارع، رقم المنزل...">
+                            </div>
+                            <div class="sh-field sh-field-full">
+                                <label>ملاحظات الطلب</label>
+                                <textarea id="co-notes" rows="3" placeholder="معلومات إضافية للتوصيل..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sh-form-card">
+                        <h3><i class="fa-solid fa-credit-card"></i> طريقة الدفع</h3>
+                        <div class="sh-payment-method">
+                            <input type="radio" id="pay-cod" name="payment" value="cod" checked>
+                            <label for="pay-cod">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                                <div>
+                                    <strong>الدفع عند الاستلام</strong>
+                                    <span>ادفع نقدًا عند استلام طلبك</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="sh-promo">
+                        <input type="text" id="co-promo" placeholder="كود الخصم (مثل STYLE10)">
+                        <button type="button" id="co-apply-promo">تطبيق</button>
+                    </div>
+                </form>
+
+                <aside class="sh-checkout-summary" id="sh-checkout-summary"></aside>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-success">
+        <div class="sh-page sh-success-page">
+            <div class="sh-success-card">
+                <div class="sh-success-icon"><i class="fa-solid fa-check"></i></div>
+                <h1>تم استلام طلبك بنجاح!</h1>
+                <p>شكرًا لك على ثقتك بـ StyleHub، سنتواصل معك قريبًا لتأكيد الطلب.</p>
+                <div class="sh-success-order" id="sh-success-order"></div>
+                <div class="sh-success-actions">
+                    <a href="#/" class="sh-btn sh-btn-primary">العودة للصفحة الرئيسية</a>
+                    <a href="#/category/all" class="sh-btn sh-btn-ghost">متابعة التسوق</a>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-wishlist">
+        <div class="sh-page sh-wishlist-page">
+            <h1 class="sh-page-title">قائمة المفضلة</h1>
+            <div class="sh-products-grid" id="sh-wishlist-grid"></div>
+        </div>
+    </template>
+
+    <template id="tpl-account">
+        <div class="sh-page sh-account-page">
+            <h1 class="sh-page-title">حسابي</h1>
+            <div class="sh-account-card">
+                <div class="sh-account-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="sh-account-info">
+                    <h3 id="sh-account-name">ضيف</h3>
+                    <p id="sh-account-phone">سجل دخولك للوصول إلى طلباتك</p>
+                </div>
+            </div>
+
+            <div class="sh-account-tabs">
+                <div class="sh-form-card">
+                    <h3><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</h3>
+                    <form id="sh-login-form" class="sh-form-grid">
+                        <div class="sh-field">
+                            <label>رقم الهاتف</label>
+                            <input type="tel" id="sh-login-phone" placeholder="0555 123 456" required>
+                        </div>
+                        <div class="sh-field">
+                            <label>الاسم</label>
+                            <input type="text" id="sh-login-name" placeholder="اسمك الكامل" required>
+                        </div>
+                        <div class="sh-field sh-field-full">
+                            <button class="sh-btn sh-btn-primary sh-btn-block" type="submit">حفظ</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="sh-form-card">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> طلباتي السابقة</h3>
+                    <div id="sh-my-orders"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="shop.js"></script>
+</body>
+</html>

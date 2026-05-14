@@ -24,7 +24,11 @@
       "main.js",
       "index.html",
       "style.css",
-      "script.js"
+      "script.js",
+      "shop.html",
+      "shop.css",
+      "shop.js",
+      "icon.png"
     ]
   },
   "dependencies": {},
