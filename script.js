@@ -696,6 +696,17 @@ navItems.forEach(item => {
             renderAIContextSummary();
             checkAIStatus();
         }
+        if (targetId === 'section-change-password') {
+            const cpUsername = document.getElementById('cp-username');
+            if (cpUsername) cpUsername.value = sessionStorage.getItem('username') || '';
+            const cpError = document.getElementById('cp-error');
+            const cpSuccess = document.getElementById('cp-success');
+            if (cpError) cpError.style.display = 'none';
+            if (cpSuccess) cpSuccess.style.display = 'none';
+            const form = document.getElementById('change-password-form');
+            if (form) form.reset();
+            if (cpUsername) cpUsername.value = sessionStorage.getItem('username') || '';
+        }
     });
 });
 
@@ -898,6 +909,66 @@ async function addAccount(e) {
 async function deleteAccount(id) {
     if (!confirm('هل تريد حذف هذا الحساب؟')) return;
     await db.collection("accounts").doc(id).delete();
+}
+
+async function changePassword(e) {
+    e.preventDefault();
+    const oldPass = document.getElementById('cp-old-password').value;
+    const newPass = document.getElementById('cp-new-password').value;
+    const confirmPass = document.getElementById('cp-confirm-password').value;
+    const errorEl = document.getElementById('cp-error');
+    const successEl = document.getElementById('cp-success');
+
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    if (newPass !== confirmPass) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'كلمة السر الجديدة وتأكيدها غير متطابقين!';
+        return;
+    }
+
+    if (newPass.length < 4) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'يجب أن تكون كلمة السر الجديدة مكونة من 4 أحرف أو أكثر!';
+        return;
+    }
+
+    try {
+        const username = sessionStorage.getItem('username');
+        if (!username) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = 'لم يتم العثور على اسم المستخدم، الرجاء تسجيل الدخول مجدداً.';
+            return;
+        }
+
+        const snapshot = await db.collection("accounts").where("username", "==", username).get();
+        if (snapshot.empty) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = 'الحساب غير موجود في قاعدة البيانات!';
+            return;
+        }
+
+        const accDoc = snapshot.docs[0];
+        const accData = accDoc.data();
+
+        if (accData.password !== oldPass) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = 'كلمة السر القديمة غير صحيحة!';
+            return;
+        }
+
+        await db.collection("accounts").doc(accDoc.id).update({ password: newPass });
+        
+        successEl.style.display = 'block';
+        successEl.textContent = 'تم تغيير كلمة السر بنجاح!';
+        document.getElementById('cp-old-password').value = '';
+        document.getElementById('cp-new-password').value = '';
+        document.getElementById('cp-confirm-password').value = '';
+    } catch (err) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'حدث خطأ أثناء تحديث كلمة السر: ' + err.message;
+    }
 }
 
 // ================== AI assistant ==================
